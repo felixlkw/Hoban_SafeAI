@@ -1,0 +1,334 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* 호반 공식 브랜드 4색 조합 — White 중심 서피스 + Dark Gray 잉크 텍스트.
+     출처: 루트 "HOBAN 브랜드 컬러  색상 가이드.txt" + White 추가. */
+  --bg: #fafafa; /* 페이지 배경 = White에 미세 Gray 틴트 */
+  --fg: #403e3c; /* 본문 = HOBAN Dark Gray(#575553) 파생 ink-800 (White 대비 ≥9:1) */
+  --heading: #2b2a29; /* 헤딩 ink-900 */
+  --muted: #58585a; /* 보조 텍스트 = HOBAN Gray(#89898A) 파생 steel-700 (대비 ≥7:1) */
+  --border: #e6e6e6; /* 구분선 = Gray 옅은 단계 */
+  --card: #ffffff; /* 카드/패널 = White */
+  --hoban-orange: #ee7500;
+  --hoban-orange-dark: #c75f00;
+  --hoban-gray: #89898a;
+  --hoban-dark-gray: #575553;
+}
+
+/* 고대비 모드 (햇빛 아래 가독성) — data-contrast="high" */
+[data-contrast="high"] {
+  --bg: #000000;
+  --fg: #ffffff;
+  --heading: #ffffff;
+  --muted: #d1d5db;
+  --border: #ffffff;
+  --card: #0a0a0a;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+/* 풀하이트 플렉스 체인 — 페이지 셸이 'dvh 과대' 없이 실제 뷰포트에 정확히 맞도록.
+   모바일 Chrome에서 100dvh가 innerHeight보다 큰 값으로 평가되어 하단 sticky/footer가
+   뷰포트 밖으로 밀려 hit-test가 깨지던 문제를 근본 차단(KB 패턴: 모바일 vh 과대 회피). */
+html,
+body {
+  height: 100%;
+}
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh; /* 작은 뷰포트 단위 — URL바 표시 시에도 넘치지 않음 */
+}
+#main {
+  flex: 1 1 auto;
+  min-height: 0; /* 자식 overflow 스크롤이 동작하도록 */
+  display: flex;
+  flex-direction: column;
+}
+
+body {
+  font-family: -apple-system, "Segoe UI", "Malgun Gothic", "맑은 고딕", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 키보드 포커스 가시성 (a11y) — 호반 오렌지 */
+:focus-visible {
+  outline: 3px solid #ee7500;
+  outline-offset: 2px;
+}
+[data-contrast="high"] :focus-visible {
+  outline-color: #fde047;
+}
+
+.surface {
+  background: var(--card);
+  border-color: var(--border);
+}
+.text-muted {
+  color: var(--muted);
+}
+
+/* 인용 하이라이트 — 브랜드 오렌지 옅은 톤(White 위 가독 잉크 텍스트) */
+mark {
+  background: #ffe9d2;
+  color: #2b2a29;
+  padding: 0 2px;
+}
+[data-contrast="high"] mark {
+  background: #fde047;
+  color: #000;
+}
+
+.writing-vertical {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+/* 접근성: 모션 민감 사용자(WCAG 2.3.3) — 애니메이션/smooth 스크롤 제거.
+   부수효과로 모바일 sticky 컴포저·바텀시트의 hit-test 안정화(요소가 즉시 정지). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 챗 스크롤 영역 */
+.chat-scroll {
+  scrollbar-width: thin;
+}
+.chat-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.chat-scroll::-webkit-scrollbar-thumb {
+  background: rgba(137, 137, 138, 0.4); /* HOBAN Gray 40% */
+  border-radius: 4px;
+}
+
+/* 어시스턴트 말풍선 = White 카드 / 사용자 말풍선 = 브랜드 오렌지 옅은 톤 */
+.bubble-assistant {
+  background: var(--card);
+  border: 1px solid var(--border);
+}
+.bubble-user {
+  background: #fff7ee; /* HOBAN Orange tint(brand-50) */
+  border: 1px solid #fccfa3; /* brand-200 */
+  color: #763800; /* brand-800 — White 위 가독 */
+}
+[data-contrast="high"] .bubble-user {
+  background: #3a2400;
+  border-color: #ff8a2a;
+  color: #fff;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   고대비 유틸리티 오버라이드 레이어
+   ────────────────────────────────────────────────────────────────────
+   문제: 컴포넌트가 CSS 변수(--bg/--fg/--card…)가 아니라 Tailwind 유틸리티
+        (bg-white, text-ink-800, bg-brand, border-line, bg-[#DC2626] 등)로
+        색을 하드코딩 → data-contrast="high"에서 변수만 뒤집혀도 이 색들은
+        그대로 남아 "일부만 반전되는" 어색한 상태가 됨.
+   해법: 화면 단위 일관성을 위해, 실제로 쓰이는 유틸리티를 고대비에서 일괄
+        재매핑. OFF(일반) 모드는 이 블록이 적용되지 않아 회귀 없음.
+
+   약속(jha-frontend-ux / jha-chat-ux): 검정 배경 · 흰 텍스트 · 노란 포커스.
+   - 중립 서피스 → 검정/근검정, 텍스트 → 흰색, 보더/링 → 흰색
+   - 브랜드 오렌지 CTA → 검정 위 밝은 #FF8A2A(대비 확보), 텍스트는 검정
+   - 위험등급/경보/에러 시맨틱 → 의미 색상은 유지하되 검정 위 가독되는
+     밝은 변형 + 흰 테두리. (라벨·글리프는 컴포넌트에서 이미 병행)
+   ════════════════════════════════════════════════════════════════════ */
+
+[data-contrast="high"] {
+  /* ── 중립 서피스(배경) → 검정/근검정 ── */
+  .bg-white,
+  .bg-surface,
+  .bg-surface-page,
+  .bg-surface-sunken,
+  .bg-surface-tint,
+  .bg-brand-50,
+  .surface {
+    background-color: #0a0a0a !important;
+  }
+
+  /* ── 중립 텍스트 → 흰색 / 밝은 회색 ── */
+  .text-ink-900,
+  .text-ink-800,
+  .text-white {
+    color: #ffffff !important;
+  }
+  .text-steel-700,
+  .text-steel-500,
+  .text-muted {
+    color: #d1d5db !important;
+  }
+
+  /* ── 보더 / 링 → 흰색 ── */
+  .border-line,
+  .border-line-strong,
+  .border-steel-300,
+  .border-white,
+  .ring-line {
+    border-color: #ffffff !important;
+  }
+  .ring-line {
+    --tw-ring-color: #ffffff !important;
+  }
+
+  /* ── 중립 점/구분 칩 ── */
+  .bg-steel-400,
+  .bg-steel-500,
+  .bg-line-strong {
+    background-color: #6b7280 !important;
+  }
+  .bg-black\/5 {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+  }
+
+  /* ── 브랜드 오렌지 CTA → 검정 위 밝은 변형 + 검정 텍스트 ──
+        클래스 이중 지정(.bg-brand.bg-brand)으로 .text-white 보다 우선순위 확보 ── */
+  .bg-brand.bg-brand,
+  .bg-brand-500.bg-brand-500,
+  .bg-brand-dark.bg-brand-dark {
+    background-color: #ff8a2a !important;
+    color: #000000 !important;
+  }
+  .text-brand-700,
+  .text-brand-600,
+  .text-brand-500 {
+    color: #ff8a2a !important;
+  }
+  .border-brand,
+  .border-brand-500,
+  .border-brand-400,
+  .border-brand-300 {
+    border-color: #ff8a2a !important;
+  }
+  .ring-brand {
+    --tw-ring-color: #ff8a2a !important;
+  }
+
+  /* ── 위험등급 솔리드 배지(상/중/하) → 흰 테두리 + 흰 텍스트 유지 ──
+        의미(빨강=상/주황=중/초록=하) 유지. 배지는 흰 글자가 얹히므로
+        검정 위에서도 흰 글자 대비 ≥4.5:1을 만족하는 채도로 조정하고,
+        검정 배경과 분리되도록 흰 윤곽선(inset)을 둔다. ── */
+  .bg-\[\#DC2626\],
+  .bg-risk-high {              /* 상 — 흰 글자 대비 ≥4.5 */
+    background-color: #d4202a !important;
+    box-shadow: inset 0 0 0 1.5px #ffffff;
+  }
+  .bg-\[\#F97316\] {           /* 중 */
+    background-color: #c2410c !important;
+    box-shadow: inset 0 0 0 1.5px #ffffff;
+  }
+  .bg-\[\#16A34A\],
+  .bg-risk-low {               /* 하 */
+    background-color: #157f3b !important;
+    box-shadow: inset 0 0 0 1.5px #ffffff;
+  }
+
+  /* 위험등급 텍스트/보더(밝은 톤) */
+  .text-\[\#DC2626\],
+  .text-risk-high {
+    color: #ff6b6b !important;
+  }
+  .text-\[\#15803D\],
+  .text-\[\#16A34A\],
+  .text-risk-low {
+    color: #4ade80 !important;
+  }
+  .border-\[\#DC2626\],
+  .border-risk-high {
+    border-color: #ff4d4d !important;
+  }
+  .border-\[\#F97316\] {
+    border-color: #ffa94d !important;
+  }
+  .border-\[\#16A34A\] {
+    border-color: #4ade80 !important;
+  }
+
+  /* ── 경보(동적 위험) 솔리드 배지 — 흰 글자 유지 + 흰 윤곽 ── */
+  .bg-\[\#3B82F6\] {           /* INFO(파랑) */
+    background-color: #1f6fd6 !important;
+    box-shadow: inset 0 0 0 1.5px #fff;
+  }
+  .bg-\[\#F59E0B\] {           /* WARN(앰버) — 흰 글자 대비 위해 진하게 */
+    background-color: #b45309 !important;
+    box-shadow: inset 0 0 0 1.5px #fff;
+  }
+  .bg-\[\#7F1D1D\] {           /* EVAC(짙은 빨강) */
+    background-color: #d4202a !important;
+    box-shadow: inset 0 0 0 1.5px #fff;
+  }
+
+  /* ── 시맨틱 라이트 배너(밝은 배경+짙은 텍스트) → 어두운 틴트+밝은 텍스트 ──
+        에러/경고/성공/정보 의미는 유지. 검정 위 가독되는 어두운 톤. ── */
+  .bg-\[\#FEF2F2\] {           /* 에러 wash(빨강) */
+    background-color: #2a0d0d !important;
+  }
+  .bg-\[\#FFF7ED\],
+  .bg-\[\#FFFBEB\] {           /* 주의 wash(주황/앰버) */
+    background-color: #2a1a05 !important;
+  }
+  .bg-\[\#FEF9C3\] {           /* 경계 wash(노랑) */
+    background-color: #2a2405 !important;
+  }
+  .bg-\[\#F0FDF4\] {           /* 성공 wash(초록) */
+    background-color: #07210f !important;
+  }
+  .bg-\[\#EFF6FF\] {           /* 정보 wash(파랑) */
+    background-color: #071a2a !important;
+  }
+  .bg-\[\#FFF7EE\] {           /* 브랜드 옅은 wash */
+    background-color: #2a1a05 !important;
+  }
+
+  /* 라이트 배너 안 짙은 텍스트 → 밝은 변형 */
+  .text-\[\#991B1B\] {        /* 에러 텍스트 */
+    color: #ff8080 !important;
+  }
+  .text-\[\#9A3412\],
+  .text-\[\#B45309\] {        /* 주황/앰버 텍스트 */
+    color: #ffb066 !important;
+  }
+  .text-\[\#854D0E\],
+  .text-\[\#A16207\] {        /* 노랑/앰버 텍스트 */
+    color: #ffd966 !important;
+  }
+  .text-\[\#1D4ED8\] {        /* 정보(파랑) 텍스트 */
+    color: #7db8ff !important;
+  }
+
+  /* 링/보더 시맨틱(노랑 신뢰도 등) */
+  .ring-\[\#CA8A04\] {
+    --tw-ring-color: #ffd966 !important;
+  }
+  .border-\[\#CA8A04\] {
+    border-color: #ffd966 !important;
+  }
+  .border-\[\#F59E0B\] {
+    border-color: #ffc94d !important;
+  }
+
+  /* ── KB 관리 화면 신규 색: 재인덱싱 상태(running 파랑) 보더 + 신규 칩 ── */
+  .border-\[\#3B82F6\] {
+    border-color: #7db8ff !important;
+  }
+  /* 신규/잠정 칩(brand-100 옅은 오렌지 배경 + brand-800 텍스트) → 어두운 틴트 + 밝은 오렌지 */
+  .bg-brand-100 {
+    background-color: #2a1a05 !important;
+  }
+  .text-brand-800 {
+    color: #ff8a2a !important;
+  }
+}

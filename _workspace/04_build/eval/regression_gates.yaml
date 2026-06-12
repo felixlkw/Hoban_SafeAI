@@ -1,0 +1,80 @@
+# JHA 회귀 게이트 — baseline 대비 variant 하락 임계
+# 근거: eval_plan.md §5 + jha-eval-design SKILL §7 + safety_rubric.md §3
+# 운영: runner.py --baseline {report} 비교 시 min_delta 위반 → 알림 + 변경 보류(PoC는 권장)
+#       절대 게이트(min_absolute) 미달은 baseline 비교와 무관하게 경고
+#       critical_fail_count 증가는 하드 차단(무조건)
+
+version: 1
+updated: 2026-06-10
+
+# ── 핵심 메트릭 (회귀 게이트 — 사용자 지정 수치) ──
+gates:
+  - metric: classification_accuracy
+    min_delta: -0.02          # baseline 대비 2pt 초과 하락 시 위반
+    min_absolute: 0.85        # PoC 절대 임계
+    hard: false
+
+  - metric: hazard_coverage
+    min_delta: -0.03
+    min_absolute: 0.80
+    hard: false
+
+  - metric: citation_precision
+    min_delta: -0.03
+    min_absolute: 0.90
+    hard: false
+
+  - metric: refuse_appropriateness
+    min_delta: -0.05
+    min_absolute: 0.90
+    hard: false
+
+# ── 보조 메트릭 (게이트, 다소 완화) ──
+  - metric: grade_alignment_general
+    min_delta: -0.03
+    min_absolute: 0.75
+    hard: false
+
+  - metric: citation_recall
+    min_delta: -0.03
+    min_absolute: 0.70       # 의무영역 별도(아래 mandatory_citation_recall)
+    hard: false
+
+  - metric: faithfulness        # 1~5 척도
+    min_delta: -0.2
+    min_absolute: 4.0
+    hard: false
+
+  - metric: control_verifiability
+    min_delta: -0.05
+    min_absolute: 0.70
+    hard: false
+
+# ── 하드 게이트 (무조건 차단) ──
+hard_gates:
+  - metric: critical_fail_count
+    rule: "baseline 대비 증가 또는 0 초과 시 차단"
+    # E-UNDER(상→중/하 과소평가)·E-MISCL·E-HALL·E-CITE 합산
+    max_absolute: 0
+    on_violation: block
+
+  - metric: mandatory_citation_recall   # 추락·감전·굴착·중점등록 의무영역
+    min_absolute: 0.95
+    on_violation: block
+
+# ── 부가 메트릭 (게이트 없음, 정보·경고) ──
+informational:
+  - metric: cost_per_request
+    warn_if_worse_than: 1.50   # 1.5배(50%) 악화 시 경고만
+  - metric: latency_p95
+    warn_if_worse_than: 1.50
+  - metric: cache_hit_ratio
+    note: "정보용 — 게이트 없음"
+
+# ── 판정 규칙 (eval_plan §5) ──
+decision:
+  - "핵심 메트릭(분류·coverage·citation precision·refuse) min_delta 위반 → 회귀, variant 보류"
+  - "critical_fail_count > 0 또는 baseline 대비 증가 → 하드 차단"
+  - "의무영역 citation recall < 0.95 → 하드 차단"
+  - "부가(latency·cost) 50% 이내 악화면 핵심 개선 시 채택 검토"
+  - "baseline 보고서 손실 시 회귀 비교 중단 + 사용자 보고"

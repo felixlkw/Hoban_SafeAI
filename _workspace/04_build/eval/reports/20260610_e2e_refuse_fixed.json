@@ -1,0 +1,264 @@
+{
+  "variant": "e2e_refuse_fixed",
+  "dataset": "gold_v1.jsonl",
+  "dataset_hash": "9f29ce50ea14",
+  "n_cases": 35,
+  "skipped": 0,
+  "seed": 42,
+  "judge_model": "claude-opus-4-7",
+  "judge_used": false,
+  "timestamp": "2026-06-10T07:16:59.404205+00:00",
+  "metrics": {
+    "classification_accuracy": 0.5941,
+    "classification_major_rate": 0.7647,
+    "hazard_coverage": 0.8382,
+    "hazard_core_recall": 0.8696,
+    "grade_alignment_general": 0.7097,
+    "grade_alignment_boundary": 0.7667,
+    "grade_alignment_overall": 0.7147,
+    "citation_precision": 0.3235,
+    "citation_recall": 0.5931,
+    "legal_recall": 0.1869,
+    "refuse_appropriateness": 1.0,
+    "faithfulness": null,
+    "control_verifiability": null
+  },
+  "critical_fail_count": 16,
+  "critical_fail_breakdown": {
+    "E-CITE": 13,
+    "E-UNDER": 3
+  },
+  "per_case": [
+    {
+      "id": "GS-0001",
+      "crit": [
+        "E-UNDER",
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0002",
+      "crit": [
+        "E-UNDER",
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0003",
+      "crit": [
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0004",
+      "crit": [
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0005",
+      "crit": [
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0006",
+      "crit": [
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0007",
+      "crit": []
+    },
+    {
+      "id": "GS-0008",
+      "crit": [
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0009",
+      "crit": [
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0010",
+      "crit": [
+        "E-UNDER",
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0011",
+      "crit": []
+    },
+    {
+      "id": "GS-0012",
+      "crit": []
+    },
+    {
+      "id": "GS-0013",
+      "crit": []
+    },
+    {
+      "id": "GS-0014",
+      "crit": [
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0015",
+      "crit": []
+    },
+    {
+      "id": "GS-0016",
+      "crit": []
+    },
+    {
+      "id": "GS-0017",
+      "crit": [
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0018",
+      "crit": []
+    },
+    {
+      "id": "GS-0019",
+      "crit": []
+    },
+    {
+      "id": "GS-0020",
+      "crit": []
+    },
+    {
+      "id": "GS-0021",
+      "crit": []
+    },
+    {
+      "id": "GS-0022",
+      "crit": [
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0023",
+      "crit": []
+    },
+    {
+      "id": "GS-0024",
+      "crit": []
+    },
+    {
+      "id": "GS-0025",
+      "crit": []
+    },
+    {
+      "id": "GS-0026",
+      "crit": [
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0027",
+      "crit": []
+    },
+    {
+      "id": "GS-0028",
+      "crit": []
+    },
+    {
+      "id": "GS-0029",
+      "crit": []
+    },
+    {
+      "id": "GS-0030",
+      "crit": []
+    },
+    {
+      "id": "GS-0031",
+      "crit": []
+    },
+    {
+      "id": "GS-0032",
+      "crit": []
+    },
+    {
+      "id": "GS-0033",
+      "crit": []
+    },
+    {
+      "id": "GS-0034",
+      "crit": []
+    },
+    {
+      "id": "GS-0035",
+      "crit": []
+    }
+  ],
+  "synonym_map_hash": "aa9774115120",
+  "_regression_blocked": true,
+  "threshold_violations": [
+    "classification_accuracy 0.5941 < 0.85",
+    "grade_alignment_general 0.7097 < 0.75",
+    "citation_precision 0.3235 < 0.9",
+    "citation_recall 0.5931 < 0.7",
+    "critical_fail_count = 16 (> 0)"
+  ],
+  "regression": {
+    "baseline_variant": "e2e_mock_baseline",
+    "baseline_dataset_hash": "9f29ce50ea14",
+    "deltas": {
+      "classification_accuracy": {
+        "baseline": 0.5941,
+        "current": 0.5941,
+        "delta": 0.0
+      },
+      "hazard_coverage": {
+        "baseline": 0.8676,
+        "current": 0.8382,
+        "delta": -0.0294
+      },
+      "citation_precision": {
+        "baseline": 0.3235,
+        "current": 0.3235,
+        "delta": 0.0
+      },
+      "refuse_appropriateness": {
+        "baseline": 0.9429,
+        "current": 1.0,
+        "delta": 0.0571
+      },
+      "grade_alignment_general": {
+        "baseline": 0.7419,
+        "current": 0.7097,
+        "delta": -0.0322
+      },
+      "citation_recall": {
+        "baseline": 0.5931,
+        "current": 0.5931,
+        "delta": 0.0
+      },
+      "critical_fail_count": {
+        "baseline": 17,
+        "current": 16,
+        "delta": -1
+      }
+    },
+    "soft_violations": [
+      "classification_accuracy: 0.5941 < min_absolute 0.85",
+      "citation_precision: 0.3235 < min_absolute 0.9",
+      "grade_alignment_general: Δ-0.0322 < min_delta -0.03 (baseline 0.7419 → 0.7097)",
+      "grade_alignment_general: 0.7097 < min_absolute 0.75",
+      "citation_recall: 0.5931 < min_absolute 0.7"
+    ],
+    "hard_violations": [
+      "critical_fail_count 16 > 0 (하드 차단)"
+    ],
+    "blocked": true,
+    "_current_hash": "9f29ce50ea14"
+  }
+}

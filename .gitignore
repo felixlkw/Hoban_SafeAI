@@ -1,0 +1,29 @@
+# 시크릿 — 절대 커밋 금지
+.env
+*.env
+!.env.example
+
+# Node
+node_modules/
+.next/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+# 런타임 산출물 (재생성 가능)
+_workspace/02_foundation/kb.sqlite*
+_workspace/05_sync/
+*.log
+
+# 임시 캡처 (시연용)
+_workspace/04_build/frontend/screenshots/
+_workspace/04_build/frontend/test-results/
+_workspace/04_build/frontend/playwright-report/
+
+# OS
+Thumbs.db
+.DS_Store

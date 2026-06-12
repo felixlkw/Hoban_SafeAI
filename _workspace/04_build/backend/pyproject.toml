@@ -1,0 +1,31 @@
+[project]
+name = "hoban-jha-backend"
+version = "0.2.0"
+description = "호반그룹 JHA Agent PoC 백엔드 (FastAPI + RAG 오케스트레이션)"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "pydantic>=2.6",
+    "openai>=1.40",
+    "rank-bm25>=0.2.2",
+]
+
+[project.optional-dependencies]
+# kiwipiepy: BM25 인덱스와 동일 형태소 토크나이저. 미설치 시 graceful 공백 토큰화 fallback.
+nlp = ["kiwipiepy>=0.17"]
+# anthropic: 레거시 LLM 공급자(LLM_PROVIDER=anthropic). 기본 경로(OpenAI)에선 불필요.
+anthropic = ["anthropic>=0.40"]
+dev = ["pytest>=8.0", "httpx>=0.27"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["app"]

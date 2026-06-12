@@ -1,0 +1,204 @@
+{
+  "index_path": "C:\\Users\\felix\\OneDrive\\문서\\Project\\Hoban_EHS_PoC_withDetails\\_workspace\\02_foundation\\bm25_index.pkl",
+  "n_documents": 4469,
+  "tokenizer": "kiwipiepy",
+  "fallback_used": false,
+  "avg_tokens_per_doc": 53.9,
+  "dense_embedding": {
+    "enabled": false,
+    "skip_reason": "BGE-M3 dense embedding은 Phase 2에서 skip (로컬 모델 ~2.3GB 다운로드 비용). Phase 4 온프레미스 GPU 환경 구비 시 embed_dense() 활성화 예정."
+  },
+  "sample_queries": [
+    "타워크레인 해체",
+    "굴착 흙막이",
+    "고소 용접"
+  ],
+  "search_results": {
+    "타워크레인 해체": [
+      {
+        "rank": 1,
+        "chunk_id": "R00043",
+        "score": 15.9179,
+        "source_row": 43,
+        "major_type": "가설공사",
+        "sub_type": "타워크레인(T형)",
+        "detail_item": "타워크레인 해체",
+        "accident_type": "전도",
+        "risk_grade": "중",
+        "hazard_preview": "타워크레인 지브해체시 주변 비계에 간섭으로 이동크레인 전도"
+      },
+      {
+        "rank": 2,
+        "chunk_id": "R00085",
+        "score": 15.9179,
+        "source_row": 85,
+        "major_type": "가설공사",
+        "sub_type": "타워크레인(L형)",
+        "detail_item": "타워크레인 해체",
+        "accident_type": "전도",
+        "risk_grade": "중",
+        "hazard_preview": "타워크레인 지브해체시 주변 비계에 간섭으로 이동크레인 전도"
+      },
+      {
+        "rank": 3,
+        "chunk_id": "R00044",
+        "score": 15.0648,
+        "source_row": 44,
+        "major_type": "가설공사",
+        "sub_type": "타워크레인(T형)",
+        "detail_item": "타워크레인 해체",
+        "accident_type": "충돌",
+        "risk_grade": "중",
+        "hazard_preview": "타워크레인 주변 호이스트 사용으로 메인 지브 또는 카운터 지브와 호이스트의 충돌 및 붕괴 "
+      },
+      {
+        "rank": 4,
+        "chunk_id": "R00086",
+        "score": 15.0648,
+        "source_row": 86,
+        "major_type": "가설공사",
+        "sub_type": "타워크레인(L형)",
+        "detail_item": "타워크레인 해체",
+        "accident_type": "충돌",
+        "risk_grade": "중",
+        "hazard_preview": "타워크레인 주변 호이스트 사용으로 메인 지브 또는 카운터 지브와 호이스트의 충돌 및 붕괴 "
+      },
+      {
+        "rank": 5,
+        "chunk_id": "R00042",
+        "score": 14.5432,
+        "source_row": 42,
+        "major_type": "가설공사",
+        "sub_type": "타워크레인(T형)",
+        "detail_item": "타워크레인 해체",
+        "accident_type": "전도",
+        "risk_grade": "중",
+        "hazard_preview": "타워크레인 주변 조경 및 부대토목공 사용 토사 반입으로 아웃트리거 설치공간 부족으로 이동식"
+      }
+    ],
+    "굴착 흙막이": [
+      {
+        "rank": 1,
+        "chunk_id": "R02855",
+        "score": 12.0857,
+        "source_row": 2855,
+        "major_type": "토목 전문공사",
+        "sub_type": "압입",
+        "detail_item": "굴착 및 흙막이 설치(압입구/도달구)",
+        "accident_type": "추락",
+        "risk_grade": "하",
+        "hazard_preview": "흙막이 설치 중 추락"
+      },
+      {
+        "rank": 2,
+        "chunk_id": "R02126",
+        "score": 11.5807,
+        "source_row": 2126,
+        "major_type": "부대토목",
+        "sub_type": "관로터파기",
+        "detail_item": "터파기",
+        "accident_type": "붕괴",
+        "risk_grade": "하",
+        "hazard_preview": "굴착사면 안식각 부족, 토사유실 : 붕괴 · 흙막이 붕괴, 전도"
+      },
+      {
+        "rank": 3,
+        "chunk_id": "R03809",
+        "score": 9.5798,
+        "source_row": 3809,
+        "major_type": "토목 전문공사",
+        "sub_type": "수직구",
+        "detail_item": "수직구 흙막이 지보공 시공",
+        "accident_type": "추락",
+        "risk_grade": "하",
+        "hazard_preview": "하부 작업장 이동 통로 미확보로 무리하게 내려가다 실족"
+      },
+      {
+        "rank": 4,
+        "chunk_id": "R03606",
+        "score": 9.4131,
+        "source_row": 3606,
+        "major_type": "토목 전문공사",
+        "sub_type": "부단수 천공",
+        "detail_item": "굴착 작업",
+        "accident_type": "낙하",
+        "risk_grade": "중",
+        "hazard_preview": "흙막이 지보공 작업 자재 인양 중 낙하"
+      },
+      {
+        "rank": 5,
+        "chunk_id": "R03811",
+        "score": 9.0719,
+        "source_row": 3811,
+        "major_type": "토목 전문공사",
+        "sub_type": "수직구",
+        "detail_item": "수직구 흙막이 지보공 시공",
+        "accident_type": "붕괴",
+        "risk_grade": "상",
+        "hazard_preview": "흙막이 지보공(Strut 등) 조립 미비에 의한 붕괴"
+      }
+    ],
+    "고소 용접": [
+      {
+        "rank": 1,
+        "chunk_id": "R03296",
+        "score": 8.7161,
+        "source_row": 3296,
+        "major_type": "토목 전문공사",
+        "sub_type": "라이닝폼제작",
+        "detail_item": "주기둥 H-beam 종방향 조립",
+        "accident_type": "추락",
+        "risk_grade": "하",
+        "hazard_preview": "양중 용접 작업시 추락"
+      },
+      {
+        "rank": 2,
+        "chunk_id": "R03370",
+        "score": 8.2775,
+        "source_row": 3370,
+        "major_type": "토목 전문공사",
+        "sub_type": "TBM 장비 반력대 설치",
+        "detail_item": "쉴드 받침대 설치",
+        "accident_type": "붕괴",
+        "risk_grade": "하",
+        "hazard_preview": "용접 작업시 감전사고 위험"
+      },
+      {
+        "rank": 3,
+        "chunk_id": "R02664",
+        "score": 7.3661,
+        "source_row": 2664,
+        "major_type": "소방/기계설비",
+        "sub_type": "소화배관 공사",
+        "detail_item": "배관용접 작업",
+        "accident_type": "추락",
+        "risk_grade": "하",
+        "hazard_preview": "고소작업 중 추락"
+      },
+      {
+        "rank": 4,
+        "chunk_id": "R03314",
+        "score": 6.7307,
+        "source_row": 3314,
+        "major_type": "토목 전문공사",
+        "sub_type": "라이닝폼제작",
+        "detail_item": "Skin plate 조립",
+        "accident_type": "낙하",
+        "risk_grade": "하",
+        "hazard_preview": "철판 용접시 추락, 낙하"
+      },
+      {
+        "rank": 5,
+        "chunk_id": "R01665",
+        "score": 6.5462,
+        "source_row": 1665,
+        "major_type": "창호공사",
+        "sub_type": "외장 UNIT타입",
+        "detail_item": "UNIT 상부 고정",
+        "accident_type": "협착",
+        "risk_grade": "중",
+        "hazard_preview": "고소작업대를 이용하여 용접작업시 용접불티에 의한 화재 · 고소작업대 조작미숙으로 인한 협착"
+      }
+    ]
+  }
+}

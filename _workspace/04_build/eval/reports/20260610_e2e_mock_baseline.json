@@ -1,0 +1,213 @@
+{
+  "variant": "e2e_mock_baseline",
+  "dataset": "gold_v1.jsonl",
+  "dataset_hash": "9f29ce50ea14",
+  "n_cases": 35,
+  "skipped": 0,
+  "seed": 42,
+  "judge_model": "claude-opus-4-7",
+  "judge_used": false,
+  "timestamp": "2026-06-10T06:58:00.373609+00:00",
+  "metrics": {
+    "classification_accuracy": 0.5941,
+    "classification_major_rate": 0.7647,
+    "hazard_coverage": 0.8676,
+    "hazard_core_recall": 0.8696,
+    "grade_alignment_general": 0.7419,
+    "grade_alignment_boundary": 0.7667,
+    "grade_alignment_overall": 0.7441,
+    "citation_precision": 0.3235,
+    "citation_recall": 0.5931,
+    "legal_recall": 0.1263,
+    "refuse_appropriateness": 0.9429,
+    "faithfulness": null,
+    "control_verifiability": null
+  },
+  "critical_fail_count": 17,
+  "critical_fail_breakdown": {
+    "E-CITE": 13,
+    "E-HALL": 2,
+    "E-UNDER": 2
+  },
+  "per_case": [
+    {
+      "id": "GS-0001",
+      "crit": [
+        "E-UNDER",
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0002",
+      "crit": [
+        "E-UNDER",
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0003",
+      "crit": [
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0004",
+      "crit": [
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0005",
+      "crit": [
+        "E-CITE",
+        "E-HALL"
+      ]
+    },
+    {
+      "id": "GS-0006",
+      "crit": [
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0007",
+      "crit": []
+    },
+    {
+      "id": "GS-0008",
+      "crit": [
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0009",
+      "crit": [
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0010",
+      "crit": [
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0011",
+      "crit": []
+    },
+    {
+      "id": "GS-0012",
+      "crit": []
+    },
+    {
+      "id": "GS-0013",
+      "crit": []
+    },
+    {
+      "id": "GS-0014",
+      "crit": [
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0015",
+      "crit": []
+    },
+    {
+      "id": "GS-0016",
+      "crit": []
+    },
+    {
+      "id": "GS-0017",
+      "crit": [
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0018",
+      "crit": []
+    },
+    {
+      "id": "GS-0019",
+      "crit": []
+    },
+    {
+      "id": "GS-0020",
+      "crit": []
+    },
+    {
+      "id": "GS-0021",
+      "crit": []
+    },
+    {
+      "id": "GS-0022",
+      "crit": [
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0023",
+      "crit": []
+    },
+    {
+      "id": "GS-0024",
+      "crit": []
+    },
+    {
+      "id": "GS-0025",
+      "crit": []
+    },
+    {
+      "id": "GS-0026",
+      "crit": [
+        "E-CITE"
+      ]
+    },
+    {
+      "id": "GS-0027",
+      "crit": []
+    },
+    {
+      "id": "GS-0028",
+      "crit": []
+    },
+    {
+      "id": "GS-0029",
+      "crit": []
+    },
+    {
+      "id": "GS-0030",
+      "crit": []
+    },
+    {
+      "id": "GS-0031",
+      "crit": []
+    },
+    {
+      "id": "GS-0032",
+      "crit": []
+    },
+    {
+      "id": "GS-0033",
+      "crit": []
+    },
+    {
+      "id": "GS-0034",
+      "crit": []
+    },
+    {
+      "id": "GS-0035",
+      "crit": [
+        "E-HALL"
+      ]
+    }
+  ],
+  "synonym_map_hash": "aa9774115120",
+  "threshold_violations": [
+    "classification_accuracy 0.5941 < 0.85",
+    "grade_alignment_general 0.7419 < 0.75",
+    "citation_precision 0.3235 < 0.9",
+    "citation_recall 0.5931 < 0.7",
+    "critical_fail_count = 17 (> 0)"
+  ]
+}

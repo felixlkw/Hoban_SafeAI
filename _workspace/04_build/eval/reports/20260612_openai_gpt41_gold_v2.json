@@ -1,0 +1,820 @@
+{
+  "variant": "openai_gpt41_gold_v2",
+  "dataset": "safety_gold_set_v2.jsonl",
+  "dataset_hash": "f484a74e3ddd",
+  "n_cases": 35,
+  "skipped": 0,
+  "seed": 42,
+  "judge_model": "gpt-4.1",
+  "judge_used": true,
+  "timestamp": "2026-06-12T06:35:03.160853+00:00",
+  "metrics": {
+    "classification_accuracy": 0.8971,
+    "classification_major_rate": 0.9118,
+    "hazard_coverage": 0.8824,
+    "hazard_core_recall": 0.8696,
+    "grade_alignment_general": 0.7903,
+    "grade_alignment_boundary": 1.0,
+    "grade_alignment_overall": 0.8088,
+    "citation_precision": 0.3407,
+    "citation_recall": 0.7647,
+    "legal_recall": 0.9091,
+    "refuse_appropriateness": 1.0,
+    "faithfulness": 4.7143,
+    "control_verifiability": 0.8091
+  },
+  "critical_fail_count": 8,
+  "critical_fail_breakdown": {
+    "E-CITE": 6,
+    "E-UNDER": 2
+  },
+  "per_case": [
+    {
+      "id": "GS-0001",
+      "crit": [
+        "E-UNDER"
+      ],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 0.0,
+      "grade_score": 0.0,
+      "grade_pred": "중",
+      "cited_rows": [
+        42,
+        43,
+        44
+      ],
+      "acceptable_rows": [
+        32,
+        44
+      ],
+      "citation_precision": 0.3333,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0002",
+      "crit": [
+        "E-CITE"
+      ],
+      "cls_score": 0.3,
+      "cls_major_correct": false,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "상",
+      "cited_rows": [
+        1723,
+        2126,
+        2141,
+        2151,
+        2675
+      ],
+      "acceptable_rows": [
+        1788,
+        1874,
+        1888
+      ],
+      "citation_precision": 0.0,
+      "citation_recall": 0.0
+    },
+    {
+      "id": "GS-0003",
+      "crit": [
+        "E-CITE"
+      ],
+      "cls_score": 0.8,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "상",
+      "cited_rows": [
+        750,
+        764,
+        767,
+        770,
+        773
+      ],
+      "acceptable_rows": [
+        329,
+        333,
+        335,
+        336,
+        341,
+        346
+      ],
+      "citation_precision": 0.0,
+      "citation_recall": 0.0
+    },
+    {
+      "id": "GS-0004",
+      "crit": [
+        "E-CITE"
+      ],
+      "cls_score": 0.8,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "상",
+      "cited_rows": [
+        3098,
+        3585,
+        3742
+      ],
+      "acceptable_rows": [
+        643,
+        651,
+        3044,
+        3055
+      ],
+      "citation_precision": 0.0,
+      "citation_recall": 0.0
+    },
+    {
+      "id": "GS-0005",
+      "crit": [
+        "E-CITE"
+      ],
+      "cls_score": 0.0,
+      "cls_major_correct": false,
+      "hazard_recall": 0.0,
+      "grade_score": 1.0,
+      "grade_pred": "상",
+      "cited_rows": [
+        2196,
+        2200,
+        4302
+      ],
+      "acceptable_rows": [
+        4338,
+        4339,
+        4340,
+        4344
+      ],
+      "citation_precision": 0.0,
+      "citation_recall": 0.0
+    },
+    {
+      "id": "GS-0006",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "상",
+      "cited_rows": [
+        132,
+        134,
+        135,
+        136,
+        137
+      ],
+      "acceptable_rows": [
+        133,
+        134,
+        137,
+        139
+      ],
+      "citation_precision": 0.4,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0007",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 0.5,
+      "grade_pred": "중",
+      "cited_rows": [
+        157
+      ],
+      "acceptable_rows": [
+        158,
+        217
+      ],
+      "citation_precision": 0.0,
+      "citation_recall": 0.0
+    },
+    {
+      "id": "GS-0008",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "상",
+      "cited_rows": [
+        2918,
+        2919,
+        2920
+      ],
+      "acceptable_rows": [
+        2920,
+        2925,
+        2936
+      ],
+      "citation_precision": 0.3333,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0009",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "하",
+      "cited_rows": [
+        129
+      ],
+      "acceptable_rows": [
+        113,
+        129
+      ],
+      "citation_precision": 1.0,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0010",
+      "crit": [
+        "E-UNDER",
+        "E-CITE"
+      ],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 0.0,
+      "grade_score": 0.0,
+      "grade_pred": "하",
+      "cited_rows": [
+        678,
+        681
+      ],
+      "acceptable_rows": [
+        675,
+        680,
+        682
+      ],
+      "citation_precision": 0.0,
+      "citation_recall": 0.0
+    },
+    {
+      "id": "GS-0011",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 0.5,
+      "grade_pred": "중",
+      "cited_rows": [
+        4,
+        5
+      ],
+      "acceptable_rows": [
+        4,
+        47
+      ],
+      "citation_precision": 0.5,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0012",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "상",
+      "cited_rows": [
+        9,
+        10
+      ],
+      "acceptable_rows": [
+        10
+      ],
+      "citation_precision": 0.5,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0013",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "상",
+      "cited_rows": [
+        1209,
+        1210,
+        1211,
+        1212,
+        1228
+      ],
+      "acceptable_rows": [
+        1211,
+        1212
+      ],
+      "citation_precision": 0.4,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0014",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "상",
+      "cited_rows": [
+        1346,
+        1347,
+        1434,
+        1461,
+        1473
+      ],
+      "acceptable_rows": [
+        1346
+      ],
+      "citation_precision": 0.2,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0015",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 0.5,
+      "grade_pred": "상",
+      "cited_rows": [
+        411,
+        412,
+        413,
+        414,
+        416
+      ],
+      "acceptable_rows": [
+        411,
+        412,
+        414
+      ],
+      "citation_precision": 0.6,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0016",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "상",
+      "cited_rows": [
+        278,
+        279,
+        280
+      ],
+      "acceptable_rows": [
+        279,
+        280
+      ],
+      "citation_precision": 0.6667,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0017",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "중",
+      "cited_rows": [
+        33
+      ],
+      "acceptable_rows": [
+        17,
+        33,
+        59,
+        75
+      ],
+      "citation_precision": 1.0,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0018",
+      "crit": [],
+      "cls_score": 0.8,
+      "cls_major_correct": true,
+      "hazard_recall": 0.0,
+      "grade_score": 1.0,
+      "grade_pred": "중",
+      "cited_rows": [
+        36,
+        37
+      ],
+      "acceptable_rows": [
+        18,
+        60
+      ],
+      "citation_precision": 0.0,
+      "citation_recall": 0.0
+    },
+    {
+      "id": "GS-0019",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "중",
+      "cited_rows": [
+        37,
+        44
+      ],
+      "acceptable_rows": [
+        30,
+        44
+      ],
+      "citation_precision": 0.5,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0020",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "하",
+      "cited_rows": [
+        2129,
+        2130,
+        2131
+      ],
+      "acceptable_rows": [
+        2129,
+        2130
+      ],
+      "citation_precision": 0.6667,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0021",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "중",
+      "cited_rows": [
+        2075,
+        2078,
+        2079,
+        2080,
+        2081
+      ],
+      "acceptable_rows": [
+        2078
+      ],
+      "citation_precision": 0.2,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0022",
+      "crit": [
+        "E-CITE"
+      ],
+      "cls_score": 0.0,
+      "cls_major_correct": false,
+      "hazard_recall": 1.0,
+      "grade_score": 0.5,
+      "grade_pred": "상",
+      "cited_rows": [
+        764,
+        767,
+        773,
+        777,
+        790
+      ],
+      "acceptable_rows": [
+        3275
+      ],
+      "citation_precision": 0.0,
+      "citation_recall": 0.0
+    },
+    {
+      "id": "GS-0023",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "중",
+      "cited_rows": [
+        1440,
+        1443,
+        1448,
+        1449,
+        1450
+      ],
+      "acceptable_rows": [
+        1440
+      ],
+      "citation_precision": 0.2,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0024",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "중",
+      "cited_rows": [
+        649,
+        650,
+        651,
+        652
+      ],
+      "acceptable_rows": [
+        643,
+        651
+      ],
+      "citation_precision": 0.25,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0025",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "중",
+      "cited_rows": [
+        2163,
+        2191
+      ],
+      "acceptable_rows": [
+        2163
+      ],
+      "citation_precision": 0.5,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0026",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 0.5,
+      "grade_pred": "상",
+      "cited_rows": [
+        689,
+        702,
+        2165,
+        2167
+      ],
+      "acceptable_rows": [
+        2166,
+        2167
+      ],
+      "citation_precision": 0.25,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0027",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "중",
+      "cited_rows": [
+        3044,
+        3683
+      ],
+      "acceptable_rows": [
+        3044,
+        3049,
+        3053
+      ],
+      "citation_precision": 0.5,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0028",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "중",
+      "cited_rows": [
+        2862,
+        2863,
+        2864
+      ],
+      "acceptable_rows": [
+        2864
+      ],
+      "citation_precision": 0.3333,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0029",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "중",
+      "cited_rows": [
+        260,
+        261,
+        264,
+        265
+      ],
+      "acceptable_rows": [
+        263,
+        265
+      ],
+      "citation_precision": 0.25,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0030",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 0.5,
+      "grade_pred": "중",
+      "cited_rows": [
+        87,
+        88,
+        89
+      ],
+      "acceptable_rows": [
+        87
+      ],
+      "citation_precision": 0.3333,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0031",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 0.5,
+      "grade_pred": "상",
+      "cited_rows": [
+        939,
+        940,
+        941,
+        942
+      ],
+      "acceptable_rows": [
+        939,
+        940
+      ],
+      "citation_precision": 0.5,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0032",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 0.5,
+      "grade_pred": "중",
+      "cited_rows": [
+        204,
+        205,
+        207
+      ],
+      "acceptable_rows": [
+        207
+      ],
+      "citation_precision": 0.3333,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0033",
+      "crit": [],
+      "cls_score": 0.8,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 0.5,
+      "grade_pred": "중",
+      "cited_rows": [
+        1262,
+        1265
+      ],
+      "acceptable_rows": [
+        1262
+      ],
+      "citation_precision": 0.5,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0034",
+      "crit": [],
+      "cls_score": 1.0,
+      "cls_major_correct": true,
+      "hazard_recall": 1.0,
+      "grade_score": 1.0,
+      "grade_pred": "하",
+      "cited_rows": [
+        253,
+        255,
+        256
+      ],
+      "acceptable_rows": [
+        253
+      ],
+      "citation_precision": 0.3333,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "GS-0035",
+      "crit": [],
+      "cls_score": null,
+      "cls_major_correct": null,
+      "hazard_recall": null,
+      "grade_score": null,
+      "grade_pred": null,
+      "cited_rows": [],
+      "acceptable_rows": [],
+      "citation_precision": null,
+      "citation_recall": null
+    }
+  ],
+  "synonym_map_hash": "aa9774115120",
+  "_regression_blocked": true,
+  "threshold_violations": [
+    "citation_precision 0.3407 < 0.9",
+    "critical_fail_count = 8 (> 0)"
+  ],
+  "regression": {
+    "baseline_variant": "openai_gpt41_baseline",
+    "baseline_dataset_hash": "9f29ce50ea14",
+    "deltas": {
+      "classification_accuracy": {
+        "baseline": 0.8971,
+        "current": 0.8971,
+        "delta": 0.0
+      },
+      "hazard_coverage": {
+        "baseline": 0.8824,
+        "current": 0.8824,
+        "delta": 0.0
+      },
+      "citation_precision": {
+        "baseline": 0.3358,
+        "current": 0.3407,
+        "delta": 0.0049
+      },
+      "refuse_appropriateness": {
+        "baseline": 1.0,
+        "current": 1.0,
+        "delta": 0.0
+      },
+      "grade_alignment_general": {
+        "baseline": 0.7903,
+        "current": 0.7903,
+        "delta": 0.0
+      },
+      "citation_recall": {
+        "baseline": 0.6176,
+        "current": 0.7647,
+        "delta": 0.1471
+      },
+      "faithfulness": {
+        "baseline": 4.7143,
+        "current": 4.7143,
+        "delta": 0.0
+      },
+      "control_verifiability": {
+        "baseline": 0.7954,
+        "current": 0.8091,
+        "delta": 0.0137
+      },
+      "critical_fail_count": {
+        "baseline": 15,
+        "current": 8,
+        "delta": -7
+      }
+    },
+    "soft_violations": [
+      "citation_precision: 0.3407 < min_absolute 0.9"
+    ],
+    "hard_violations": [
+      "critical_fail_count 8 > 0 (하드 차단)"
+    ],
+    "blocked": true,
+    "_current_hash": "f484a74e3ddd"
+  }
+}

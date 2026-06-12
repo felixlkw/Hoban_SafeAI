@@ -1,0 +1,956 @@
+openapi: 3.1.0
+info:
+  title: Hoban JHA Agent API
+  version: 0.2.0
+  description: |
+    호반그룹 LLM/RAG 기반 작업위험성평가(JHA) 지원 에이전트 PoC API.
+    계약 우선(Contract-first). frontend·ERP·eval 병렬 개발 기준.
+
+    ## 핵심 규칙
+    - 세션 상태 머신: CREATED→CLASSIFIED→ASSESSED→(PENDING_REVIEW→REVIEWED)?→FINALIZED→REGISTERING→COMPLETED/REGISTER_FAILED
+    - 곱16 경계셀(강도4×빈도4): human_review_required=true, critical_register="O (잠정)".
+      안전관리자 review 확정 전 finalize 호출 시 409 REVIEW_REQUIRED.
+    - result_type: ok | low_confidence | no_match | refused_partial | refused_full
+    - LLM 응답은 jha_generation_template JSON 스키마를 코드가 재검증(등급 재계산·인용검증 citations⊆retrieved).
+    - 외부 LLM 호출 전 화이트리스트 필드만 전송(data_security_policy.md). PII 의심 필드 마스킹 강제.
+
+    ## 버저닝
+    - 경로 prefix `/v1`. breaking change → `/v2`. 비파괴 추가는 minor(info.version).
+    - deprecation: Sunset 헤더 + 최소 1 릴리스 유지.
+  contact:
+    name: backend-engineer (Hoban JHA PoC)
+
+servers:
+  - url: https://jha-api.hoban.internal
+    description: 사내 운영(예정)
+  - url: http://localhost:8000
+    description: 로컬 개발
+
+tags:
+  - name: sessions
+    description: JHA 다단계 워크플로우 세션
+  - name: citations
+    description: 인용 원문 조회
+  - name: feedback
+    description: 사용자 피드백 수집(eval 연계)
+  - name: system
+    description: 헬스/관측
+
+security:
+  - bearerAuth: []
+
+paths:
+  /v1/jha/sessions:
+    post:
+      tags: [sessions]
+      operationId: createSession
+      summary: 새 JHA 세션 생성 (자연어 작업 입력)
+      description: |
+        자연어 작업 설명을 받아 세션을 CREATED 상태로 생성한다.
+        권한: worker, safety_manager, admin.
+        rate limit: 사용자별 세션 생성 10/min.
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SessionCreate' }
+      responses:
+        '201':
+          description: 세션 생성됨
+          headers:
+            X-Request-ID: { $ref: '#/components/headers/XRequestId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Session' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/AuthError' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /v1/jha/sessions/{id}/classify:
+    post:
+      tags: [sessions]
+      operationId: classifySession
+      summary: 분류 추천 (대/중/세부)
+      description: |
+        세션 입력에 대해 대/중/세부 분류와 confidence를 추천한다.
+        confidence<0.7 → opus-4-7 2차 호출(adaptive thinking) 트리거.
+        전이: CREATED|CLASSIFIED → CLASSIFIED (재호출 멱등 갱신 허용).
+        검색 0건 → 200 + result_type=no_match.
+        권한: worker, safety_manager, admin.
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/RequestId'
+        - name: stream
+          in: query
+          description: SSE 스트리밍 응답 여부
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: 분류 결과
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClassificationResult' }
+            text/event-stream:
+              schema: { type: string, description: SSE 청크(delta JSON) }
+        '401': { $ref: '#/components/responses/AuthError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: 상태 전이 불가(이미 ASSESSED 이후)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '502': { $ref: '#/components/responses/LlmUpstreamError' }
+        '503': { $ref: '#/components/responses/LlmUnavailable' }
+
+  /v1/jha/sessions/{id}/assess:
+    post:
+      tags: [sessions]
+      operationId: assessSession
+      summary: 분류 확정 후 위험요인·등급·개선대책 생성
+      description: |
+        확정 분류로 RAG 파이프라인을 실행해 위험요인·강도×빈도·등급·대책·인용을 생성한다.
+        후처리(G4~G8): JSON 스키마 검증→인용검증(citations⊆retrieved)→등급 코드 재계산→
+        경계셀 3중 강제. 곱16 hazard 존재 시 human_review_required=true,
+        critical_register="O (잠정)", 세션 상태 ASSESSED→PENDING_REVIEW 분기.
+        전이: CLASSIFIED|ASSESSED → ASSESSED 또는 PENDING_REVIEW.
+        권한: worker, safety_manager, admin.
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/RequestId'
+        - name: stream
+          in: query
+          schema: { type: boolean, default: false }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssessRequest' }
+      responses:
+        '200':
+          description: 평가 결과(result_type별 형태 상이)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AssessmentResult' }
+            text/event-stream:
+              schema: { type: string }
+        '401': { $ref: '#/components/responses/AuthError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: 분류 미확정 상태에서 호출(CREATED)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '502': { $ref: '#/components/responses/LlmUpstreamError' }
+        '503': { $ref: '#/components/responses/LlmUnavailable' }
+
+  /v1/jha/sessions/{id}/review:
+    post:
+      tags: [sessions]
+      operationId: reviewSession
+      summary: 경계셀/human_review 항목 확정 (safety_manager 전용)
+      description: |
+        곱16 경계셀·갭 미확인·필수인용 누락 등 human_review_required 항목을
+        안전관리자가 등급/중점등록을 확정한다. 확정 시 critical_register의
+        "O (잠정)"→"O" 또는 "X" 결정, human_review_required=false.
+        전이: PENDING_REVIEW → REVIEWED. 비-경계 ASSESSED 세션은 review 불필요(스킵 가능).
+        권한: **safety_manager, admin 전용** (worker 403 INSUFFICIENT_ROLE).
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/RequestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReviewRequest' }
+      responses:
+        '200':
+          description: 검토 확정 결과
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AssessmentResult' }
+        '401': { $ref: '#/components/responses/AuthError' }
+        '403':
+          description: worker 역할은 review 불가
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error: { code: AUTH_INSUFFICIENT_ROLE, message: "경계셀 확정은 안전관리자 권한이 필요합니다." }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: PENDING_REVIEW 상태가 아님
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /v1/jha/sessions/{id}/finalize:
+    post:
+      tags: [sessions]
+      operationId: finalizeSession
+      summary: 최종 확정 → ERP 등록 큐잉 (Outbox)
+      description: |
+        사용자 검토 완료 후 ERP 등록을 비동기 큐잉한다(낙관적 즉시 응답).
+        **차단 게이트(409 REVIEW_REQUIRED)**: human_review_required=true 이고
+        아직 REVIEWED 되지 않은 세션(=PENDING_REVIEW)은 finalize 차단.
+        곱16 "O (잠정)"·필수인용 누락 레코드는 안전관리자 확정 전 ERP 등록 불가.
+        전이: ASSESSED|REVIEWED → FINALIZED → REGISTERING(즉시).
+        권한: safety_manager, admin (worker 403).
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FinalizeRequest' }
+      responses:
+        '202':
+          description: ERP 등록 큐잉됨(Outbox)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FinalizationResult' }
+        '401': { $ref: '#/components/responses/AuthError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: |
+            검토 필요(human_review 미확정) 또는 상태 전이 불가.
+            code=REVIEW_REQUIRED 또는 INVALID_STATE_TRANSITION.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              examples:
+                reviewRequired:
+                  value:
+                    error:
+                      code: SESSION_REVIEW_REQUIRED
+                      message: "경계셀(강도4×빈도4) 또는 필수인용 누락 항목이 안전관리자 확정 전입니다. ERP 등록이 차단되었습니다."
+                      details: { human_review_required: true, pending_hazards: [0, 2] }
+                invalidState:
+                  value:
+                    error:
+                      code: SESSION_INVALID_STATE_TRANSITION
+                      message: "현재 상태(CLASSIFIED)에서는 finalize 할 수 없습니다."
+                      details: { current_state: CLASSIFIED, required_state: [ASSESSED, REVIEWED] }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /v1/jha/sessions/{id}:
+    get:
+      tags: [sessions]
+      operationId: getSession
+      summary: 세션 상태/결과 조회 (다단계 워크플로우)
+      description: |
+        세션 현재 상태·분류·평가·검토·ERP 등록 결과를 통합 조회.
+        권한: 본인 세션은 worker 이상, 타인 세션은 safety_manager 이상.
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/RequestId'
+      responses:
+        '200':
+          description: 세션 전체 상태
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionDetail' }
+        '401': { $ref: '#/components/responses/AuthError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/jha/citations/{source_row}:
+    get:
+      tags: [citations]
+      operationId: getCitation
+      summary: 인용 원문 조회 (source_row 기준)
+      description: |
+        Excel 원본 행(source_row) 단위 표준 데이터 원문을 조회.
+        frontend 인용 사이드 패널·검증용. 화이트리스트 필드만 반환.
+      parameters:
+        - name: source_row
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+          description: 전사 하위공종 위험요인 Excel 행 번호
+        - $ref: '#/components/parameters/RequestId'
+      responses:
+        '200':
+          description: 인용 원문
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Citation' }
+        '401': { $ref: '#/components/responses/AuthError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/jha/feedback:
+    post:
+      tags: [feedback]
+      operationId: submitFeedback
+      summary: 사용자 피드백 수집 (eval 연계)
+      description: |
+        추천 결과에 대한 사용자 수정/거절/수락 피드백을 수집.
+        eval-engineer 회귀 데이터셋·gold set 보강 신호로 사용.
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FeedbackCreate' }
+      responses:
+        '201':
+          description: 피드백 저장됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FeedbackAck' }
+        '401': { $ref: '#/components/responses/AuthError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  # ── KB(지식베이스) CRUD — 안전관리자·admin 전용. 변이 시 자동 재인덱싱·핫스왑 ──
+  /v1/kb/rows:
+    get:
+      tags: [kb]
+      operationId: listKbRows
+      summary: KB 행 검색·필터·페이징 (safety_manager+)
+      description: |
+        전사 하위공종 위험요인 운영 저장소(SSOT) 조회. q(위험요인·대책·세부항목 텍스트),
+        분류·등급·중점등록 필터, offset/limit 페이징, sort.
+      parameters:
+        - { name: q, in: query, required: false, schema: { type: string } }
+        - { name: major_type, in: query, required: false, schema: { type: string } }
+        - { name: sub_type, in: query, required: false, schema: { type: string } }
+        - { name: accident_type, in: query, required: false, schema: { type: string } }
+        - { name: risk_grade, in: query, required: false, schema: { type: string, enum: ["상","중","하"] } }
+        - { name: critical_register, in: query, required: false, schema: { type: string, enum: ["O","X"] } }
+        - { name: include_deleted, in: query, required: false, schema: { type: boolean, default: false } }
+        - { name: offset, in: query, required: false, schema: { type: integer, default: 0, minimum: 0 } }
+        - { name: limit, in: query, required: false, schema: { type: integer, default: 50, minimum: 1, maximum: 500 } }
+        - { name: sort, in: query, required: false, schema: { type: string, default: chunk_id } }
+      responses:
+        '200':
+          description: 행 목록
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KbRowList' }
+        '401': { $ref: '#/components/responses/AuthError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [kb]
+      operationId: createKbRow
+      summary: KB 행 생성 (safety_manager+)
+      description: |
+        신규 행 생성. chunk_id 는 N{seq} 자동 부여(기존 R##### 보존).
+        **서버 강제 도메인 규칙**: risk_grade 는 강도×빈도 임계곱 재계산(입력 무시),
+        중점등록은 등급'상'⇔O 자동(곱16 경계셀만 입력 존중 + boundary_cell 플래그).
+        분류 검증: 대/중공종은 taxonomy_lookup 존재값 필수, 신규 세부항목은 허용 + is_new_detail.
+        생성 후 자동 재인덱싱(디바운스) 스케줄 → 핫스왑.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/KbRowWrite' }
+      responses:
+        '201':
+          description: 생성됨(서버 재계산 등급·중점등록 포함)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KbRow' }
+        '401': { $ref: '#/components/responses/AuthError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /v1/kb/rows/{chunk_id}:
+    parameters:
+      - { name: chunk_id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [kb]
+      operationId: getKbRow
+      summary: KB 행 단건 (safety_manager+)
+      responses:
+        '200':
+          description: 단건
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KbRow' }
+        '401': { $ref: '#/components/responses/AuthError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [kb]
+      operationId: updateKbRow
+      summary: KB 행 수정 (safety_manager+)
+      description: 동일 도메인 규칙·검증 적용. 수정 후 자동 재인덱싱.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/KbRowWrite' }
+      responses:
+        '200':
+          description: 수정됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KbRow' }
+        '401': { $ref: '#/components/responses/AuthError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [kb]
+      operationId: deleteKbRow
+      summary: KB 행 soft delete (safety_manager+)
+      description: row_status=deleted. 인덱스에서 제외(재인덱싱 반영). 인용 시 "삭제된 행" 표기.
+      responses:
+        '200':
+          description: 삭제됨(soft)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KbRow' }
+        '401': { $ref: '#/components/responses/AuthError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/kb/stats:
+    get:
+      tags: [kb]
+      operationId: kbStats
+      summary: KB 통계·재인덱싱 상태 (safety_manager+)
+      description: 행수·분류 카운트 + reindex_status·index_version·last_reindex_at·doc_count·regression_recommended.
+      responses:
+        '200':
+          description: 통계
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KbStats' }
+        '401': { $ref: '#/components/responses/AuthError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /v1/kb/reindex:
+    post:
+      tags: [kb]
+      operationId: kbReindex
+      summary: 수동 전체 재인덱싱 트리거 (safety_manager+)
+      description: 디바운스 없이 즉시 동기 재인덱싱 + 핫스왑. 실패 시 구 인덱스 유지(무중단).
+      responses:
+        '200':
+          description: 재인덱싱 완료
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReindexAck' }
+        '401': { $ref: '#/components/responses/AuthError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /v1/health:
+    get:
+      tags: [system]
+      operationId: healthCheck
+      summary: 헬스 체크 (의존성 포함)
+      security: []
+      responses:
+        '200':
+          description: 정상
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+        '503':
+          description: 의존성 다운(인덱스/Claude/Redis)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 호반 SSO(OIDC) 또는 PoC JWT. role claim(worker|safety_manager|admin) 포함.
+
+  parameters:
+    SessionId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    RequestId:
+      name: X-Request-ID
+      in: header
+      required: false
+      description: 트레이싱용 요청 ID. 미제공 시 서버 생성.
+      schema: { type: string }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: 멱등 처리 키(중복 생성·등록 방지).
+      schema: { type: string }
+
+  headers:
+    XRequestId:
+      description: 요청 추적 ID(에코)
+      schema: { type: string }
+    RetryAfter:
+      description: 재시도 권장 대기 초
+      schema: { type: integer }
+
+  schemas:
+    SessionCreate:
+      type: object
+      required: [work_description]
+      properties:
+        work_description:
+          type: string
+          minLength: 2
+          maxLength: 2000
+          description: 자연어 작업 설명(예 "타워크레인 해체 작업")
+          example: 타워크레인 마스트 해체 작업
+        site_id:
+          type: string
+          description: ERP 현장 코드(선택, finalize 시 필수)
+        worker_count:
+          type: integer
+          minimum: 1
+        meta:
+          type: object
+          additionalProperties: true
+          description: frontend 부가 컨텍스트(공종 힌트 등)
+
+    Session:
+      type: object
+      required: [session_id, state, created_at]
+      properties:
+        session_id: { type: string, format: uuid }
+        state: { $ref: '#/components/schemas/SessionState' }
+        work_description: { type: string }
+        created_at: { type: string, format: date-time }
+        owner_user_id: { type: string }
+
+    SessionState:
+      type: string
+      enum:
+        - CREATED
+        - CLASSIFIED
+        - ASSESSED
+        - PENDING_REVIEW
+        - REVIEWED
+        - FINALIZED
+        - REGISTERING
+        - COMPLETED
+        - REGISTER_FAILED
+
+    ResultType:
+      type: string
+      description: |
+        ok=정상 / low_confidence=약한 매칭 / no_match=검색0건 /
+        refused_partial=갭 partial(밀폐공간·화학물질 등 일부 차단) /
+        refused_full=갭 full(석면 등) 또는 비작업 입력
+      enum: [ok, low_confidence, no_match, refused_partial, refused_full]
+
+    ClassificationResult:
+      type: object
+      required: [session_id, state, result_type, classification]
+      properties:
+        session_id: { type: string, format: uuid }
+        state: { $ref: '#/components/schemas/SessionState' }
+        result_type: { $ref: '#/components/schemas/ResultType' }
+        classification:
+          type: object
+          properties:
+            major_type: { type: [string, 'null'] }
+            sub_type: { type: [string, 'null'] }
+            detail_item: { type: [string, 'null'] }
+            confidence: { type: number, minimum: 0, maximum: 1 }
+        candidates:
+          type: array
+          description: 대체 분류 후보(사용자 선택용)
+          items:
+            type: object
+            properties:
+              major_type: { type: string }
+              sub_type: { type: string }
+              detail_item: { type: string }
+              confidence: { type: number }
+              source_rows:
+                type: array
+                items: { type: integer }
+        warnings:
+          type: array
+          items: { type: string }
+        model_used: { type: string, description: "실제 사용 모델 ID" }
+        extended_thinking_used: { type: boolean }
+
+    AssessRequest:
+      type: object
+      description: 사용자가 확정한 분류(미지정 시 classify 결과 사용)
+      properties:
+        confirmed_classification:
+          type: object
+          properties:
+            major_type: { type: string }
+            sub_type: { type: string }
+            detail_item: { type: string }
+
+    Hazard:
+      type: object
+      required: [accident_type, description, severity, frequency, risk_grade, citations]
+      properties:
+        accident_type:
+          type: string
+          enum: [추락, 낙하, 전도, 협착, 충돌, 감전, 화재, 폭발, 질식, 근골격계, 질환, 비래, 붕괴, 도괴, 베임, 찔림, 절단, 말림, 골절, 직업성 질환, 기타]
+        description: { type: string }
+        severity: { type: integer, minimum: 1, maximum: 5 }
+        frequency: { type: integer, minimum: 1, maximum: 5 }
+        risk_grade:
+          type: string
+          enum: [상, 중, 하]
+          description: 코드가 재계산(하≤9/중10~15/상≥16). LLM 값 덮어씀.
+        boundary_cell:
+          type: boolean
+          description: severity==4 & frequency==4 (곱16). true면 grade=상 고정·human_review.
+        controls:
+          type: array
+          items: { type: string }
+        citations:
+          type: array
+          description: chunk_id 배열(citations ⊆ retrieved 검증 통과분)
+          items: { type: string, example: R00042 }
+        legal_refs:
+          type: array
+          items: { type: string }
+
+    HumanReviewFlags:
+      type: object
+      properties:
+        boundary_cell: { type: boolean }
+        human_review_required: { type: boolean }
+        legal_critical_candidate: { type: boolean }
+        data_gap: { type: boolean }
+        gap_areas:
+          type: array
+          items: { type: string }
+        low_citation_confidence: { type: boolean }
+
+    AssessmentResult:
+      type: object
+      required: [session_id, state, result_type, hazards, critical_register, human_review_flags, source_rows]
+      properties:
+        session_id: { type: string, format: uuid }
+        state: { $ref: '#/components/schemas/SessionState' }
+        result_type: { $ref: '#/components/schemas/ResultType' }
+        classification:
+          type: object
+          additionalProperties: true
+        hazards:
+          type: array
+          items: { $ref: '#/components/schemas/Hazard' }
+        critical_register:
+          type: string
+          enum: ["O", "X", "O (잠정)"]
+          description: 코드 재계산. 최종 grade=상 → O. 곱16 → "O (잠정)".
+        critical_register_reasons:
+          type: array
+          items: { type: string }
+        legal_refs:
+          type: array
+          items: { type: string }
+        human_review_flags: { $ref: '#/components/schemas/HumanReviewFlags' }
+        warnings:
+          type: array
+          items: { type: string }
+        source_rows:
+          type: array
+          description: chunk_id→source_row 역추적으로 백엔드 재산출(ERP 등록 키)
+          items: { type: integer }
+        model_used: { type: string }
+        parse_error:
+          type: boolean
+          description: G4 재생성 실패 시 true. raw_text로 graceful 표시.
+        raw_text:
+          type: [string, 'null']
+          description: parse_error=true일 때 LLM 원문
+
+    ReviewRequest:
+      type: object
+      required: [decisions]
+      properties:
+        decisions:
+          type: array
+          description: human_review 대상 hazard별 안전관리자 확정
+          items:
+            type: object
+            required: [hazard_index, confirmed_grade]
+            properties:
+              hazard_index: { type: integer, minimum: 0 }
+              confirmed_grade:
+                type: string
+                enum: [상, 중, 하]
+                description: 곱16 경계셀의 안전관리자 최종 등급 결정
+              confirmed_critical_register:
+                type: string
+                enum: ["O", "X"]
+                description: '"O (잠정)" → 최종 O/X 확정'
+              note: { type: string }
+        reviewer_note: { type: string }
+
+    FinalizeRequest:
+      type: object
+      properties:
+        site_id: { type: string, description: ERP 현장 코드(미지정 시 세션 값) }
+        worker_edits:
+          type: object
+          additionalProperties: true
+          description: 사용자가 수정한 최종 위험요인/대책(감사 기록)
+
+    FinalizationResult:
+      type: object
+      required: [session_id, state, outbox_id]
+      properties:
+        session_id: { type: string, format: uuid }
+        state: { $ref: '#/components/schemas/SessionState' }
+        outbox_id: { type: string }
+        status: { type: string, enum: [queued] }
+        message: { type: string, example: "ERP 등록이 큐잉되었습니다." }
+
+    SessionDetail:
+      type: object
+      properties:
+        session: { $ref: '#/components/schemas/Session' }
+        classification: { $ref: '#/components/schemas/ClassificationResult' }
+        assessment: { $ref: '#/components/schemas/AssessmentResult' }
+        review:
+          type: object
+          additionalProperties: true
+        erp:
+          type: object
+          properties:
+            erp_id: { type: [string, 'null'] }
+            register_state: { type: string }
+            attempts: { type: integer }
+            last_error: { type: [string, 'null'] }
+
+    Citation:
+      type: object
+      required: [source_row]
+      properties:
+        source_row: { type: integer }
+        major_type: { type: string }
+        sub_type: { type: string }
+        detail_item: { type: string }
+        accident_type: { type: string }
+        hazard_text: { type: string }
+        control_text: { type: string }
+        severity: { type: integer }
+        frequency: { type: integer }
+        legal_refs:
+          type: array
+          items: { type: string }
+
+    FeedbackCreate:
+      type: object
+      required: [session_id, action]
+      properties:
+        session_id: { type: string, format: uuid }
+        action:
+          type: string
+          enum: [accept, edit, reject]
+        target:
+          type: string
+          enum: [classification, hazard, grade, control, citation, overall]
+        hazard_index: { type: integer }
+        corrected_value:
+          type: object
+          additionalProperties: true
+        comment: { type: string }
+
+    FeedbackAck:
+      type: object
+      properties:
+        feedback_id: { type: string }
+        accepted: { type: boolean }
+
+    Health:
+      type: object
+      properties:
+        status: { type: string, enum: [ok, degraded, down] }
+        version: { type: string }
+        dependencies:
+          type: object
+          properties:
+            kb_index: { type: string, enum: [ok, degraded, down] }
+            claude_api: { type: string, enum: [ok, down] }
+            session_store: { type: string, enum: [ok, down] }
+            erp_adapter: { type: string, enum: [ok, degraded, down] }
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: |
+                에러 코드 체계(prefix):
+                AUTH_* (401/403), VALIDATION_* (400/422),
+                SESSION_* (404/409), RAG_* (200+result_type 또는 5xx),
+                LLM_* (502/503), ERP_* (202/5xx), SECURITY_* (500 비노출),
+                INTERNAL_* (500), RATE_* (429)
+            message: { type: string, description: 사용자 표시용 메시지(한국어) }
+            details:
+              type: object
+              additionalProperties: true
+              description: 디버그 정보(사용자 비표시 가능)
+            request_id: { type: string }
+
+    # ── KB(지식베이스) CRUD 스키마 ──────────────────────────────────────────
+    KbRowWrite:
+      type: object
+      required: [major_type, sub_type, detail_item, severity, frequency, hazard_text]
+      description: |
+        KB 행 생성/수정 입력. **risk_grade·critical_register 는 서버가 강제 재계산**하므로
+        입력해도 무시된다(곱16 경계셀의 critical_register 만 존중). 클라이언트는 강도·빈도만 보낸다.
+      properties:
+        major_type: { type: string, description: 대공종(taxonomy_lookup 존재값) }
+        sub_type: { type: string, description: 중공종(taxonomy_lookup 존재값) }
+        detail_item: { type: string, description: 세부항목(신규 허용 → is_new_detail=true) }
+        accident_type: { type: string, default: 기타, description: 재해형태(21종 enum) }
+        severity: { type: integer, minimum: 1, maximum: 5 }
+        frequency: { type: integer, minimum: 1, maximum: 5 }
+        hazard_text: { type: string, minLength: 1 }
+        controls: { type: string, default: "" }
+        critical_register:
+          type: string
+          enum: ["O", "X", "O (잠정)"]
+          nullable: true
+          description: 곱16 경계셀에서만 존중. 그 외 서버 자동(상⇔O).
+        legal_refs: { type: array, items: { type: string } }
+    KbRow:
+      type: object
+      required: [chunk_id]
+      properties:
+        chunk_id: { type: string, description: "기존 R##### 또는 신규 N{seq}" }
+        source_row: { type: integer, nullable: true, description: "신규 행은 음수(lineage 구분)" }
+        major_type: { type: string }
+        sub_type: { type: string }
+        detail_item: { type: string }
+        accident_type: { type: string }
+        severity: { type: integer }
+        frequency: { type: integer }
+        risk_product: { type: integer, description: "강도×빈도(서버 계산)" }
+        risk_grade: { type: string, enum: ["상","중","하"], description: "서버 재계산(임계곱)" }
+        critical_register: { type: string, enum: ["O","X"], description: "서버 자동(상⇔O)" }
+        boundary_cell: { type: boolean, description: "곱16(강도4×빈도4) 경계셀" }
+        is_new_detail: { type: boolean, description: "taxonomy 미등록 신규 세부항목" }
+        hazard_text: { type: string }
+        hazard_items: { type: array, items: { type: string } }
+        controls: { type: string }
+        controls_items: { type: array, items: { type: string } }
+        legal_refs: { type: array, items: { type: string } }
+        row_status: { type: string, enum: ["active","deleted"] }
+        updated_at: { type: string, nullable: true }
+        updated_by: { type: string, nullable: true }
+    KbRowList:
+      type: object
+      required: [rows, total, offset, limit]
+      properties:
+        rows: { type: array, items: { $ref: '#/components/schemas/KbRow' } }
+        total: { type: integer }
+        offset: { type: integer }
+        limit: { type: integer }
+    KbStats:
+      type: object
+      properties:
+        active_rows: { type: integer }
+        deleted_rows: { type: integer }
+        new_rows: { type: integer, description: "N{seq} 신규 행 수" }
+        by_major_type: { type: object, additionalProperties: { type: integer } }
+        by_risk_grade: { type: object, additionalProperties: { type: integer } }
+        reindex_status: { type: string, enum: ["idle","pending","running"] }
+        index_version: { type: integer, description: "재인덱싱 증가 카운터" }
+        last_reindex_at: { type: string, nullable: true }
+        doc_count: { type: integer, description: "현재 인덱스 문서 수" }
+        last_change_ratio: { type: number }
+        regression_recommended: { type: boolean, description: "변경비율>5% → 회귀 권고(sync.py 정합)" }
+    ReindexAck:
+      type: object
+      properties:
+        status: { type: string }
+        index_version: { type: integer }
+        doc_count: { type: integer }
+        last_reindex_at: { type: string, nullable: true }
+        last_duration_ms: { type: number, nullable: true }
+        regression_recommended: { type: boolean }
+
+  responses:
+    ValidationError:
+      description: 입력 검증 실패
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { code: VALIDATION_FIELD_INVALID, message: "work_description은 2자 이상이어야 합니다." }
+    AuthError:
+      description: 인증 실패
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { code: AUTH_TOKEN_INVALID, message: "인증 토큰이 유효하지 않습니다." }
+    Forbidden:
+      description: 권한 부족
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { code: AUTH_INSUFFICIENT_ROLE, message: "이 작업을 수행할 권한이 없습니다." }
+    NotFound:
+      description: 리소스 없음
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { code: SESSION_NOT_FOUND, message: "세션을 찾을 수 없습니다." }
+    RateLimited:
+      description: rate limit 초과
+      headers:
+        Retry-After: { $ref: '#/components/headers/RetryAfter' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { code: RATE_LIMIT_EXCEEDED, message: "요청이 너무 많습니다. 잠시 후 다시 시도하세요." }
+    LlmUpstreamError:
+      description: Claude API 5xx (1회 재시도 후 실패)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { code: LLM_UPSTREAM_ERROR, message: "AI 추천 엔진 일시 오류입니다. 다시 시도해 주세요.", details: { retryable: true } }
+    LlmUnavailable:
+      description: Claude circuit breaker open / 503
+      headers:
+        Retry-After: { $ref: '#/components/headers/RetryAfter' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { code: LLM_CIRCUIT_OPEN, message: "AI 추천 엔진 점검 중입니다.", details: { retryable: true } }
+    InternalError:
+      description: 서버 내부 오류
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { code: INTERNAL_ERROR, message: "일시적인 오류가 발생했습니다." }

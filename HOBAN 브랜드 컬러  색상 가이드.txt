@@ -1,0 +1,29 @@
+HOBAN 브랜드 컬러 3종에 대한 색상 가이드입니다.
+
+1. HOBAN Orange
+
+HOBAN의 대표 오렌지 컬러입니다.
+
+CMYK: C 0 / M 66 / Y 100 / K 0
+RGB: R 238 / G 117 / B 0
+HSB: #EE7500
+PANTONE: 152C
+3M: 3630-84
+2. HOBAN Gray
+
+중간 톤의 회색 컬러입니다.
+
+CMYK: C 53 / M 44 / Y 41 / K 0
+RGB: R 137 / G 137 / B 137
+HSB: #89898A
+PANTONE: Cool Gray 8C
+3M: 3630-51
+3. HOBAN Dark Gray
+
+어두운 회색 컬러입니다.
+
+CMYK: C 3 / M 3 / Y 5 / K 80
+RGB: R 87 / G 85 / B 83
+HSB: #575553
+PANTONE: Cool Gray 11C
+3M: 3630-69
