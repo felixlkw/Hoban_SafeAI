@@ -10,6 +10,10 @@ import tempfile
 
 os.environ.setdefault("JHA_AUTH_ENABLED", "false")   # 기본 인증 우회(별도 토큰 테스트는 개별 설정)
 os.environ.setdefault("JHA_FORCE_MOCK", "true")      # Claude Mock 강제
+# 동적 위험: 테스트는 항상 mock provider(실 공공 API 비호출). conftest 가 config 의
+# _load_dotenv(override=False) 보다 먼저 설정하므로 .env 의 kma/vworld 가 무시됨.
+os.environ.setdefault("JHA_WEATHER_PROVIDER", "mock")
+os.environ.setdefault("JHA_GEO_PROVIDER", "mock")
 # KB 저장소: 테스트 세션 전용 임시 디렉토리(원본 kb.sqlite 절대 비접근).
 # 매 테스트가 이 디렉토리 안에 고유 파일명 SQLite 를 쓰도록 _reset_singletons 에서 주입.
 _TMP_KB_DIR = tempfile.mkdtemp(prefix="jha_test_kb_")

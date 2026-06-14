@@ -18,7 +18,7 @@ from app.adapters.erp_adapter import ErpError
 from app.errors import JhaError, RateLimited, ValidationFailed
 from app.errors import LlmCircuitOpen
 from app.middleware.logging import RequestContextMiddleware, configure_logging
-from app.routes import citations, feedback, health, kb, sessions
+from app.routes import citations, dynamic_risk, feedback, health, kb, sessions
 from app.schemas.models import ErrorBody, ErrorResponse
 
 logger = logging.getLogger("jha.main")
@@ -71,6 +71,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(sessions.router)
     app.include_router(citations.router)
+    app.include_router(dynamic_risk.router)
     app.include_router(feedback.router)
     app.include_router(kb.router)
 

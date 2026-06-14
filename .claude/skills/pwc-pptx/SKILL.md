@@ -40,8 +40,35 @@ cp /home/claude/slides.pptx /mnt/user-data/outputs/
 - **다단 구성은 텍스트 런(run)으로**: 레이블·수치·캡션처럼 스타일이 다른 다단 텍스트는 `[{text,options:{fontSize,bold,color,breakLine}},...]` 런 배열을 한 오브젝트에 작성 (statCard 참조)
 - **표 형태는 addTable**: 키-값 스펙, KPI 목록, 매트릭스 등 행·열 구조는 셀별 fill을 가진 `slide.addTable()` 단일 오브젝트로 작성. rect 격자 + 텍스트 조합으로 표를 그리지 않음
 - **허용되는 레이어링**: 텍스트 없는 순수 장식(악센트 바, 커넥터 라인, 배경 이미지)과 그 위의 독립 오브젝트 조합은 허용. 금지 대상은 "동일 영역에 박스 따로 + 텍스트 따로"인 경우임
-- **텍스트 여백·줄간격 규칙**: 박스 텍스트의 내부 여백(inset)은 상하좌우 모두 0(`margin:0`)으로 통일. 줄간격은 기본값(single)을 유지하며, 폰트 크기보다 작은 `lineSpacing` 강제 지정 금지 — 글자 상하 겹침이 발생함. 항목 간 간격 조정은 `lineSpacing` 압축이 아닌 `paraSpaceAfter`로 처리
+- **텍스트 여백·줄간격 규칙**: 박스 텍스트의 내부 여백(inset)은 상하좌우 모두 0(`margin:0`)이 기본. 단 **하위 내용 박스의 좌측 여백은 아래 "박스 텍스트 정렬·여백 규칙"을 따라 0.3cm(8.5pt) 부여**(제목/중심주제 박스는 0 유지). 줄간격은 기본값(single)을 유지하며, 폰트 크기보다 작은 `lineSpacing` 강제 지정 금지 — 글자 상하 겹침이 발생함. 항목 간 간격 조정은 `lineSpacing` 압축이 아닌 `paraSpaceAfter`로 처리
 - 모든 기본 헬퍼(flowBox, calloutBand, statCard, numBadge, milestoneTag, phaseBanner, calloutNote, sectionPanel)는 이 원칙으로 구현되어 있음. sectionPanel은 `opts.body`에 문자열/런 배열을 넘기면 본문 박스에 텍스트를 직접 작성함
+
+### 박스 텍스트 정렬·여백 규칙 (가독성·심미성)
+
+박스(도형) 안에 들어가는 텍스트는 **의미 위계**에 따라 정렬·여백을 다르게 준다. 제목은 시선을 중앙에 모으고, 하위 불릿은 좌측 여백으로 정렬축을 만들어 가독성·심미성을 높인다.
+
+| 텍스트 위계 | 정렬·여백 | pptxgenjs 속성 |
+|------------|----------|----------------|
+| **제목/중심주제** (박스 헤더·핵심 메시지·라벨·매트릭스 셀 라벨·KPI 라벨) | **가운데 정렬** | `align:'center'` |
+| **하위 내용** (헤더 아래 설명·세부항목) | **불릿 + 도형 좌측 inset 0.3cm** | `bullet:{indent:8}` + 좌측 inset 0.3cm ≈ **8.5pt** |
+
+> **좌측 inset 8.5pt 적용 주의**: pptxgenjs는 `margin` 배열을 `[lIns, rIns, bIns, tIns]`(pt) 순으로 매핑함(top/right/bottom/left 순서가 아님). 따라서 **좌측 8.5pt는 `margin[0]`에 둠** → `margin:[8.5, 2, 2, 2]`. `margin:[2,2,2,8.5]`로 쓰면 8.5pt가 상단(tIns)에 들어가 오작동함. 불릿 들여쓰기(`bullet.indent`)와 도형 내부 좌측 여백(`margin[0]`)은 별개로 둘 다 적용한다.
+>
+> 본문(박스 아닌 일반 단락)·표(`addTable`)는 이 규칙 대상 아님 — 기존 정렬 유지.
+
+```js
+// 제목/중심주제 박스 → 가운데 정렬
+slide.addText(header, {shape:'rect', x, y, w, h:0.32, fill:{color:C.ink},
+  fontFace:FONT_BODY, fontSize:10, bold:true, color:C.white,
+  align:'center', valign:'middle', margin:0});
+
+// 그 하위 내용 박스 → 불릿 + 좌측 inset 0.3cm(8.5pt)
+const BODY_INSET=[8.5,2,2,2];   // [lIns, rIns, bIns, tIns] — 좌측만 8.5pt
+slide.addText('데이터 관리화면 접근 — 안전관리자만\n전체 변경 감사 이력 기록\n작업자 조회 불가', {
+  shape:'rect', x, y:y+0.32, w, h:0.7, fill:{color:C.white}, line:{color:C.grayLine,width:0.75},
+  fontFace:FONT_BODY, fontSize:9, color:C.text, valign:'top',
+  bullet:{indent:8}, margin:BODY_INSET});
+```
 
 ## 디자인 토큰 (변경 금지)
 

@@ -10,6 +10,36 @@ from pathlib import Path
 
 # ── 경로 (backend/ 기준에서 _workspace 루트 역추적) ────────────────────────
 _THIS = Path(__file__).resolve()
+
+
+def _load_dotenv() -> None:
+    """backend/.env 를 무의존 로드(KEY=VALUE). 이미 설정된 환경변수는 덮지 않음
+    (override=False) — CI/테스트(conftest)·셸 export 가 항상 우선한다.
+    python-dotenv 미의존(오프라인 설치 안전). 따옴표·주석·빈줄 처리.
+    """
+    env_path = _THIS.parent.parent / ".env"   # .../backend/.env
+    if not env_path.exists():
+        return
+    try:
+        for raw in env_path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, val = line.partition("=")
+            key = key.strip()
+            val = val.strip()
+            # 따옴표 값은 그대로(내부 # 보존), 비따옴표 값은 인라인 주석(공백+#) 제거.
+            if val[:1] in ("'", '"'):
+                val = val.strip('"').strip("'")
+            elif " #" in val:
+                val = val.split(" #", 1)[0].strip()
+            if key and key not in os.environ:
+                os.environ[key] = val
+    except Exception:  # noqa: BLE001 — 설정 로드 실패는 mock 폴백으로 계속
+        pass
+
+
+_load_dotenv()
 # .../_workspace/04_build/backend/app/config.py → parents[3] = _workspace
 WORKSPACE_ROOT = _THIS.parents[3]
 FOUNDATION_DIR = WORKSPACE_ROOT / "02_foundation"
@@ -91,6 +121,21 @@ if _FORCE_MOCK:
 
 # 레거시 별칭(기존 README·코드 호환). 실제 폴백 판정은 llm_client 팩토리가 수행.
 USE_MOCK_CLAUDE = LLM_PROVIDER == "mock"
+
+# ── 동적 위험 외부 공공 API (기상청·에어코리아·V-World) ──────────────────────
+# provider 추상화: WEATHER_PROVIDER/GEO_PROVIDER 로 mock↔실API 교체.
+#   mock(기본): 결정적 시나리오. kma/vworld: data.go.kr·vworld.kr 실 호출.
+# 키 부재 시 실 provider 라도 mock 폴백(+경고 로그) — 데모/테스트 안전.
+# ⚠️ 이 키들은 절대 frontend(NEXT_PUBLIC_)에 두지 말 것. 백엔드 proxy 전용.
+WEATHER_PROVIDER = os.getenv("JHA_WEATHER_PROVIDER", "mock").lower()  # mock|kma
+GEO_PROVIDER = os.getenv("JHA_GEO_PROVIDER", "mock").lower()          # mock|vworld
+# data.go.kr 공통 serviceKey (기상청 단기예보·기상특보·에어코리아 공용 계정 키).
+DATA_GO_KR_SERVICE_KEY = os.getenv("DATA_GO_KR_SERVICE_KEY", "")
+# V-World 인증키(도메인 등록 필수). 지오코딩·주제도 공용.
+VWORLD_API_KEY = os.getenv("VWORLD_API_KEY", "")
+# 외부 공공 API 타임아웃·캐시 TTL(초). 기상 실황 갱신 10분 → 캐시 권장.
+EXTERNAL_API_TIMEOUT_S = float(os.getenv("JHA_EXTERNAL_API_TIMEOUT", "4"))
+WEATHER_CACHE_TTL_S = float(os.getenv("JHA_WEATHER_CACHE_TTL", "600"))
 
 # ── CORS (frontend 실연동) ────────────────────────────────────────────────
 # frontend(Next.js) 개발 서버(3000)·mock 데모(3100)에서의 브라우저 호출 허용.

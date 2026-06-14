@@ -9,6 +9,7 @@ dependencies = [
     "pydantic>=2.6",
     "openai>=1.40",
     "rank-bm25>=0.2.2",
+    "httpx>=0.27",
 ]
 
 [project.optional-dependencies]

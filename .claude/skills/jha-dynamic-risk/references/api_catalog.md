@@ -1,5 +1,8 @@
 # 무료 공공 API 카탈로그 + 목업↔실API 교체 가이드
 
+> 신청·키발급·백엔드 연동 **실행 절차**는 → `api_onboarding_runbook.md` 참조.
+> 코드: `backend/app/services/dynamic_risk/`(provider 추상화·격자변환), `routes/dynamic_risk.py`(proxy 엔드포인트).
+
 ## 1. API 카탈로그 (전부 무료, 공공데이터포털 자동승인)
 
 | API | 기관 | 데이터 | 호출제한 | 인증 | PoC |

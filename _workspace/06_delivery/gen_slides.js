@@ -24,7 +24,7 @@ const DECK = {
   footerBrand: 'Samil PwC',           // 좌하단 볼드 브랜드 락업
   date: '2026.06',
   outFile: process.env.OUT_FILE || 'Hoban_JHA_PoC_구성검토.pptx',
-  total: 20,
+  total: 22,
 };
 
 // ============================================================================
@@ -40,6 +40,10 @@ const C = {
 };
 const FONT_TITLE='Noto Serif CJK KR', FONT_BODY='맑은 고딕', FONT_MONO='Consolas';
 const W=10, H=5.625;
+// 박스 텍스트 서식 규칙(pwc-pptx): 하위 내용 박스는 도형 좌측 inset 0.3cm(≈8.5pt) 부여.
+// pptxgenjs는 margin 배열을 [lIns, rIns, bIns, tIns] (pt) 순으로 매핑함(소스 5389~5392) → 좌측이 [0].
+// 따라서 좌측 8.5pt(0.3cm)는 margin[0]에 둠. 헤더/제목 텍스트는 align:'center'로 별도 처리.
+const BODY_INSET=[8.5,2,2,2];
 
 // ============================================================================
 //  ASSET BUILDERS
@@ -1031,11 +1035,14 @@ function milestoneTag(slide,x,y,code,opts={}){
   slide.addText(code,{shape:'roundRect',rectRadius:0.04,x,y,w,h,fill:{color:C.orange},line:{color:C.orangeDeep,width:0.5},fontFace:FONT_BODY,fontSize:9,bold:true,color:C.white,align:'center',valign:'middle',margin:0});
 }
 
-/** Callout box — highlighted note with colored left border */
+/** Callout box — highlighted note with colored left border
+ *  하위 설명 텍스트 → 불릿 + 좌측 inset 0.3cm(8.5pt) (pwc-pptx 박스 텍스트 규칙). */
 function calloutNote(slide,x,y,w,h,text,opts={}){
   const accentColor=opts.accent||C.orange;
+  const isRuns=Array.isArray(text);
+  const bullet=opts.bullet!==undefined?opts.bullet:!isRuns;
   slide.addShape('rect',{x,y,w:0.05,h,fill:{color:accentColor},line:{color:accentColor,width:0}});
-  slide.addText(text,{shape:'rect',x:x+0.07,y,w:w-0.07,h,fill:{color:opts.fill||C.peachLight},line:{color:C.grayLine,width:0.5},fontFace:FONT_BODY,fontSize:opts.fontSize||9,color:C.text,valign:'middle',margin:0});
+  slide.addText(text,{shape:'rect',x:x+0.07,y,w:w-0.07,h,fill:{color:opts.fill||C.peachLight},line:{color:C.grayLine,width:0.5},fontFace:FONT_BODY,fontSize:opts.fontSize||9,color:C.text,valign:'middle',margin:BODY_INSET,bullet:bullet?{indent:8}:false});
 }
 
 /** Grade badge row — MD/D/SM/M/SA/A hierarchy indicator */
@@ -1068,16 +1075,21 @@ function splitLine(slide,x,y1,y2,opts={}){
   slide.addShape('rect',{x:x-0.01,y:y1,w:0.02,h:y2-y1,fill:{color:opts.color||C.grayLine},line:{color:opts.color||C.grayLine,width:0}});
 }
 
-/** Section panel — colored left/right/top panel with optional header */
+/** Section panel — colored left/right/top panel with optional header
+ *  박스 텍스트 서식 규칙(pwc-pptx): 헤더(제목/중심주제)=가운데 정렬,
+ *  본문(하위 내용)=불릿 + 도형 좌측 inset 0.3cm(8.5pt). */
 function sectionPanel(slide,x,y,w,h,opts={}){
   const headerH=opts.headerH||0.32;
   if(opts.header){
-    slide.addText(opts.header,{shape:'rect',x,y,w,h:headerH,fill:{color:opts.headerFill||C.ink},line:{color:opts.headerFill||C.ink,width:0},fontFace:FONT_BODY,fontSize:opts.headerFontSize||10,bold:true,color:C.white,valign:'middle',margin:0});
+    // 헤더 = 제목/중심주제 → 가운데 정렬
+    slide.addText(opts.header,{shape:'rect',x,y,w,h:headerH,fill:{color:opts.headerFill||C.ink},line:{color:opts.headerFill||C.ink,width:0},fontFace:FONT_BODY,fontSize:opts.headerFontSize||10,bold:true,color:C.white,align:'center',valign:'middle',margin:0});
   }
   const bodyY=opts.header?y+headerH:y, bodyH=opts.header?h-headerH:h;
   if(opts.body!==undefined){
-    // body 텍스트(문자열 또는 런 배열)를 배경 박스에 직접 작성 — 단일 오브젝트
-    slide.addText(opts.body,{shape:'rect',x,y:bodyY,w,h:bodyH,fill:{color:opts.fill||C.white},line:{color:opts.border||C.grayLine,width:0.75},fontFace:FONT_BODY,fontSize:opts.bodyFontSize||9,color:C.text,align:opts.bodyAlign||'left',valign:opts.bodyValign||'top',margin:0});
+    // body 텍스트(하위 내용) — 불릿 + 좌측 inset 0.3cm(8.5pt). 런 배열(제목+설명 혼합)은 불릿 미적용.
+    const isRuns=Array.isArray(opts.body);
+    const bullet=opts.bullet!==undefined?opts.bullet:(!isRuns && opts.bodyAlign!=='center');
+    slide.addText(opts.body,{shape:'rect',x,y:bodyY,w,h:bodyH,fill:{color:opts.fill||C.white},line:{color:opts.border||C.grayLine,width:0.75},fontFace:FONT_BODY,fontSize:opts.bodyFontSize||9,color:C.text,align:opts.bodyAlign||'left',valign:opts.bodyValign||'top',margin:BODY_INSET,bullet:bullet?{indent:8}:false});
   } else {
     slide.addShape('rect',{x,y:bodyY,w,h:bodyH,fill:{color:opts.fill||C.white},line:{color:opts.border||C.grayLine,width:0.75}});
   }
@@ -1138,12 +1150,12 @@ async function build(){
   // ── 2. 목차 (contentsList) ─────────────────────────────────────────────
   { pg++; const s=pres.addSlide(); s.background={color:C.white};
     contentsList(s,[
-      {label:'추진 배경 — As-Is 문제와 To-Be 목표상',page:'03'},
-      {label:'PoC 개요 — 범위·데모 시나리오·사용자 여정',page:'05'},
-      {label:'데이터 구성 — 전사 위험요인 자산화·파이프라인',page:'08'},
-      {label:'AI 에이전트 아키텍처 — RAG·가드레일·연동',page:'12'},
-      {label:'검증 현황 — 메커니즘 검증 vs 실 LLM 보류',page:'15'},
-      {label:'검토 요청 사항 — 함께 결정할 안건',page:'18'},
+      {label:'추진 배경 — As-Is 문제·동종사 동향·To-Be 목표상',page:'03'},
+      {label:'PoC 개요 — 범위·데모 시나리오·사용자 여정',page:'06'},
+      {label:'데이터 구성 — 전사 위험요인 자산화·파이프라인',page:'09'},
+      {label:'AI 에이전트 아키텍처 — RAG·가드레일·연동',page:'13'},
+      {label:'검증 현황 — 실 LLM baseline 실측',page:'16'},
+      {label:'검토 요청 사항 — 검토 안건·PwC 구축방안',page:'19'},
     ]);
     addFooter(s,pg);
   }
@@ -1194,6 +1206,49 @@ async function build(){
       {text:'핵심 AI 기술 — ',options:{bold:true,color:C.orange}},
       {text:'LLM(자연어 이해) · RAG(사내 위험요인 검색·근거) · Semantic Search · Agentic Workflow. 단, 사용자가 항상 수정·거절 가능해야 함(제약사항).',options:{color:C.ink}},
     ],{h:0.46});
+    addFooter(s,pg);
+  }
+
+  // ── 5. 동종사 AI 기반 작업위험성평가(JHA) 적용 동향 (시장 동향 · 공개 자료 기반) ──
+  { pg++; const s=pres.addSlide(); s.background={color:C.white};
+    addTitle(s,'추진 배경 — 동종사도 안전 AI 전환 중, 자연어·RAG·ERP 연동이 차별점',
+      '중대재해처벌법(2022 시행·2024 5인 이상 전면 확대) 대응으로 동종사가 안전관리 AI 전환을 가속 중임(공개 자료 기준). 다수가 CCTV 영상AI·재해예측에 집중한 가운데, 호반 JHA PoC는 자연어 입력→RAG 근거검색→ERP 자동등록의 평가 생성 자동화로 차별화 가능.');
+    // 좌 — 동종사 동향 카드 / 우 — 호반 차별점
+    const LX=0.4, LW=5.55, RX=6.1, RW=3.5, topY=1.55;
+    sectionPanel(s,LX,topY,LW,0.32,{header:'동종사·시장 동향 (공개 보도·발표 자료 기준)',headerFill:C.grayDark,headerFontSize:10});
+    const peers=[
+      {t:'현대건설 — 재해 예측 AI',d:'과거 10년 토목·건축·플랜트 3,900만 건 빅데이터(준사고 포함) 기반. 당일 공정·장비 입력 시 재해 발생확률을 정량 예측·선제 관리'},
+      {t:'삼성물산 — 현장 AI 안전관리',d:'성수 K-프로젝트 등에 AI 인체인식 카메라(지게차·굴착기)·AI CCTV·디지털 트윈 적용. 2025 건설부동산산업대상 수상'},
+      {t:'스마트 위험성평가 SaaS 확산',d:'위험성평가서비스를 100위내 주요 건설사 포함 5,000여 기업·7만 사용자 채택. 고용부 지침 변경(TBM·상시평가)을 신속 반영해 확산'},
+      {t:'글로벌 — RAG·LLM 기반 JSA 연구',d:'사고보고서 LLM 분류·RAG 기반 설명가능 안전보고 자동생성·멀티에이전트 JSA가 학계·산업에서 부상(2024~2025 논문 다수)'},
+    ];
+    let py=topY+0.4; const ph=0.79;
+    peers.forEach((p,i)=>{
+      numBadge(s,LX+0.05,py+0.05,String(i+1),{size:0.28});
+      s.addText([
+        {text:p.t+'\n',options:{fontSize:9.5,bold:true,color:C.ink}},
+        {text:p.d,options:{fontSize:8.3,color:C.textLight}},
+      ],{shape:'rect',x:LX+0.42,y:py,w:LW-0.45,h:ph,fill:{color:C.grayLight},line:{color:C.grayLine,width:0.5},valign:'middle',margin:0,fontFace:FONT_BODY});
+      py+=ph+0.08;
+    });
+    sectionPanel(s,RX,topY,RW,0.32,{header:'호반 JHA PoC의 차별점',headerFill:C.orange,headerFontSize:10});
+    const diff=[
+      {t:'영상AI가 아닌 평가 생성 자동화',d:'동종사 다수가 CCTV 영상AI·예측에 집중. 호반은 위험성평가서 작성 자체를 자연어→AI 추천으로 자동화'},
+      {t:'전사 위험요인 RAG 근거검색',d:'사내 4,469행 위험요인을 근거로 인용. 출처 없으면 거절(refuse) — 환각 차단 구조'},
+      {t:'ERP 자동 등록 연동',d:'검토·확정분을 ERP에 자동 등록 — 평가가 조직 지식자산으로 축적'},
+    ];
+    let dy=topY+0.4; const dh=1.06;
+    diff.forEach((d,i)=>{
+      s.addText([
+        {text:d.t+'\n',options:{fontSize:9.3,bold:true,color:C.orangeDeep}},
+        {text:d.d,options:{fontSize:8.3,color:C.text}},
+      ],{shape:'rect',x:RX,y:dy,w:RW,h:dh,fill:{color:C.peachLight},line:{color:C.orange,width:0.5},valign:'middle',margin:4,fontFace:FONT_BODY});
+      dy+=dh+0.08;
+    });
+    calloutBand(s,4.95,[
+      {text:'시사점 — ',options:{bold:true,color:C.orange}},
+      {text:'안전 AI 전환은 동종사 공통 흐름으로 시의적절. 영상AI 중심 시장에서 자연어·RAG·ERP 연동형 평가 자동화는 호반의 차별 포지셔닝으로 가져갈 수 있음(동향은 공개 자료 기반·경쟁사 내부정보 추정 아님).',options:{color:C.ink}},
+    ],{h:0.5,fontSize:9.3});
     addFooter(s,pg);
   }
 
@@ -1370,9 +1425,9 @@ async function build(){
     // ── 권한·감사 / 품질 게이트 2분할 ──
     const LX=0.4, LW=4.55, RX=5.05, RW=4.55, dY=3.7;
     sectionPanel(s,LX,dY,LW,1.0,{header:'권한 게이트 · 변경 감사',headerFill:C.ink,headerFontSize:10,
-      body:'· 데이터 관리화면 접근 — 안전관리자·관리자만(역할 게이트)\n· 행 생성/수정/삭제 전체 변경 감사 이력 기록\n· 작업자는 조회 불가 — 운영 데이터 오염 차단',bodyFontSize:8.7});
+      body:'데이터 관리화면 접근 — 안전관리자·관리자만(역할 게이트)\n행 생성/수정/삭제 전체 변경 감사 이력 기록\n작업자는 조회 불가 — 운영 데이터 오염 차단',bodyFontSize:8.7});
     sectionPanel(s,RX,dY,RW,1.0,{header:'품질 게이트 · 안전 폴백',headerFill:C.orange,headerFontSize:10,
-      body:'· 변경 비율 5% 초과 시 회귀 평가 권고 플래그\n· 재인덱싱 실패 시 이전 인덱스 유지(안전 폴백)\n· 무중단 교체 — 서비스 중단 없이 AI 답변 갱신',bodyFontSize:8.7});
+      body:'변경 비율 5% 초과 시 회귀 평가 권고 플래그\n재인덱싱 실패 시 이전 인덱스 유지(안전 폴백)\n무중단 교체 — 서비스 중단 없이 AI 답변 갱신',bodyFontSize:8.7});
     // ── 운영 효과 1줄 (고객 Problem #3 대응) ──
     calloutNote(s,0.4,4.82,9.2,0.42,'운영 효과 — 타 현장 우수사례·신규 위험요인이 문서로만 남아 휘발되던 구조(Problem #3 “데이터 휘발”)를, 안전관리자 입력→자동 자산화 루프로 전환. 신규 계획부는 구성 계획(구현 중)으로 정직 구분 표기함.',{accent:C.orangeDeep,fontSize:8.7});
     addFooter(s,pg);
@@ -1566,6 +1621,51 @@ async function build(){
       ],{shape:'rect',x:1.05,y:iy,w:8.55,h:h,fill:{color:done?C.greenLight:C.peachLight},line:{color:done?C.green:C.orange,width:0.5},valign:'middle',margin:0,fontFace:FONT_BODY});
       iy+=h+0.05;
     });
+    addFooter(s,pg);
+  }
+
+  // ── PwC가 호반에 제안하는 구축방안 (단계 게이트 + 역할분담) ──
+  { pg++; const s=pres.addSlide(); s.background={color:C.white};
+    addTitle(s,'PwC 구축방안 — PoC 검증을 토대로 단계적 확장(Phase별 게이트·역할분담)',
+      '검증된 PoC를 기준으로 PoC→파일럿→운영을 의사결정 게이트로 단계 확장. 각 단계는 산출물·게이트 조건이 명확하며, 호반이 결정할 사항과 삼일 PwC(AX)가 제공할 자산을 분리해 추진하는 것이 적절.');
+    // 3단계 phase 헤더 + 산출물·게이트 카드
+    const phases=[
+      {n:'Phase 1',t:'PoC 검증 (현재)',built:true,
+       deliv:'· 메커니즘 데모(Mock 어댑터)\n· 데이터 자산화 4,469행\n· RAG·가드레일·이중 게이트\n· gpt-4.1 baseline 실측',
+       gate:'게이트 → 파일럿\n· 핵심 품질축 임계 충족(확인)\n· 인용 평가기준·등급 2건 보강'},
+      {n:'Phase 2',t:'파일럿 (실데이터·실 LLM)',built:false,
+       deliv:'· dense 검색 활성·실 LLM 튜닝\n· refuse 보강 완결\n· 안전관리자 KB 운영·재인덱싱\n· 전문가 검증 ≥200건',
+       gate:'게이트 → 운영\n· 분류·인용·등급 임계 재충족\n· 거절 recall ≥0.95·오답 보정'},
+      {n:'Phase 3',t:'운영 전환·확장',built:false,
+       deliv:'· 실 ERP I/F 결선(mTLS·화이트리스트)\n· 동적 위험 실 API(기상청·V-World)\n· ETL→webhook→CDC 단계 전환\n· 전사 현장 확산',
+       gate:'운영 정착\n· 실 등록 트랜잭션 안정화\n· 동적 위험·법령 최신성 게이트'},
+    ];
+    const pn=phases.length, pgap=0.12, pw=(9.2-pgap*(pn-1))/pn, pTopY=1.5;
+    phases.forEach((ph,i)=>{
+      const x=0.4+i*(pw+pgap);
+      const accent=ph.built?C.orange:C.orangeDeep;
+      s.addText([
+        {text:ph.n+'  ',options:{fontSize:11,bold:true,color:C.white}},
+        {text:ph.t,options:{fontSize:9.3,bold:true,color:C.white}},
+      ],{shape:'rect',x,y:pTopY,w:pw,h:0.36,fill:{color:accent},line:{color:accent,width:0},valign:'middle',align:'center',margin:0,fontFace:FONT_BODY});
+      // 산출물
+      s.addText([
+        {text:'주요 산출물\n',options:{fontSize:8.3,bold:true,color:accent}},
+        {text:ph.deliv,options:{fontSize:8.2,color:C.text}},
+      ],{shape:'rect',x,y:pTopY+0.38,w:pw,h:1.18,fill:{color:ph.built?C.peachLight:C.white},line:{color:accent,width:ph.built?0.5:1,dashType:ph.built?'solid':'dash'},valign:'top',margin:5,fontFace:FONT_BODY});
+      // 게이트
+      s.addText([
+        {text:ph.gate.split('\n')[0]+'\n',options:{fontSize:8.3,bold:true,color:C.ink}},
+        {text:ph.gate.split('\n').slice(1).join('\n'),options:{fontSize:8,color:C.textLight}},
+      ],{shape:'rect',x,y:pTopY+1.6,w:pw,h:0.86,fill:{color:C.grayLight},line:{color:C.grayLine,width:0.5},valign:'top',margin:5,fontFace:FONT_BODY});
+      if(i<pn-1) s.addText('▶',{x:x+pw-0.04,y:pTopY+0.9,w:0.12,h:0.24,fontFace:FONT_BODY,fontSize:11,bold:true,color:C.orange,align:'center',valign:'middle',margin:0});
+    });
+    // 역할분담 2분할
+    const dY=4.18;
+    sectionPanel(s,0.4,dY,4.55,0.98,{header:'호반이 결정 (Decision)',headerFill:C.ink,headerFontSize:9.5,
+      body:'ERP I/F·DB 접근 전략 확정·승인(P0)\n전문가 검증 기간·대조 ≥200건 리소스\n데이터 추가 범위·갭 영역 보강 우선순위',bodyFontSize:8.3});
+    sectionPanel(s,5.05,dY,4.55,0.98,{header:'삼일 PwC(AX) 제공 (Delivery)',headerFill:C.orange,headerFontSize:9.5,
+      body:'RAG·가드레일·평가 프레임워크 자산(재사용)\n단계 게이트 운영·회귀 평가·튜닝 방법론\n어댑터 격리 설계 — 검색·LLM·ERP 무중단 교체',bodyFontSize:8.3});
     addFooter(s,pg);
   }
 
